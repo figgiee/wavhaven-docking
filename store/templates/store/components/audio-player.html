@@ -1,0 +1,222 @@
+{% load static %}
+
+<div x-data="persistentPlayer"
+     x-show="currentTrack"
+     x-transition
+     class="fixed bottom-0 left-0 right-0 z-50 bg-dark/90 backdrop-blur-lg border-t border-white/5">
+    <div class="content-container">
+        <div class="flex items-center justify-between h-24 gap-6">
+            <!-- Track Info -->
+            <div class="flex items-center gap-4 w-1/4 min-w-0">
+                <img :src="currentTrack?.coverImage" 
+                     :alt="currentTrack?.title"
+                     class="w-16 h-16 rounded-lg object-cover">
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-medium text-white truncate" x-text="currentTrack?.title"></h4>
+                    <p class="text-sm text-gray-400 truncate" x-text="currentTrack?.producer"></p>
+                </div>
+                <button @click="toggleFavorite" 
+                        class="p-2 rounded-full hover:bg-white/5 transition-colors"
+                        :class="{ 'text-pink-500': isFavorite, 'text-gray-400': !isFavorite }">
+                    <i class="fas" :class="isFavorite ? 'fa-heart' : 'fa-heart-o'"></i>
+                </button>
+            </div>
+            
+            <!-- Player Controls and Visualization -->
+            <div class="flex flex-col items-center gap-3 flex-1">
+                <!-- Main Controls -->
+                <div class="flex items-center gap-6">
+                    <button @click="toggleShuffle" 
+                            class="text-gray-400 hover:text-white transition-colors"
+                            :class="{ 'text-indigo-400': isShuffled }">
+                        <i class="fas fa-random"></i>
+                    </button>
+                    
+                    <button @click="previousTrack" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-backward text-lg"></i>
+                    </button>
+                    
+                    <button @click="togglePlay" 
+                            class="w-12 h-12 rounded-full bg-indigo-500 hover:bg-indigo-600 flex items-center justify-center transition-all transform active:scale-95">
+                        <template x-if="!isPlaying">
+                            <i class="fas fa-play text-white ml-1"></i>
+                        </template>
+                        <template x-if="isPlaying">
+                            <i class="fas fa-pause text-white"></i>
+                        </template>
+                    </button>
+                    
+                    <button @click="nextTrack" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-forward text-lg"></i>
+                    </button>
+                    
+                    <button @click="toggleLoop" 
+                            class="text-gray-400 hover:text-white transition-colors relative"
+                            :class="{ 'text-indigo-400': loopMode !== 'off' }">
+                        <i class="fas fa-redo-alt"></i>
+                        <span x-show="loopMode === 'one'" 
+                              class="absolute -top-1 -right-1 text-xs bg-indigo-500 rounded-full w-4 h-4 flex items-center justify-center">
+                            1
+                        </span>
+                    </button>
+                </div>
+                
+                <!-- Waveform and Progress -->
+                <div class="w-full flex items-center gap-4">
+                    <span class="text-xs text-gray-400 font-medium tabular-nums" x-text="formatTime(currentTime)">0:00</span>
+                    
+                    <div class="flex-1 h-12 relative">
+                        <div id="waveform" class="w-full h-full"></div>
+                    </div>
+                    
+                    <span class="text-xs text-gray-400 font-medium tabular-nums" x-text="formatTime(duration)">0:00</span>
+                </div>
+            </div>
+            
+            <!-- Volume and Purchase -->
+            <div class="flex items-center gap-6 w-1/4 justify-end">
+                <div class="flex items-center gap-2">
+                    <button @click="toggleMute" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas" :class="volumeIcon"></i>
+                    </button>
+                    <input type="range" 
+                           x-model="volume"
+                           @input="updateVolume"
+                           class="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                           min="0"
+                           max="100"
+                           step="1">
+                </div>
+                
+                <button @click="purchaseBeat" 
+                        class="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-dark">
+                    Purchase Beat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('persistentPlayer', () => ({
+        currentTrack: null,
+        isPlaying: false,
+        isMuted: false,
+        volume: 100,
+        previousVolume: 100,
+        isFavorite: false,
+        isShuffled: false,
+        loopMode: 'off', // 'off', 'all', 'one'
+        currentTime: 0,
+        duration: 0,
+        wavesurfer: null,
+
+        init() {
+            // Initialize WaveSurfer
+            this.wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: 'rgba(255, 255, 255, 0.2)',
+                progressColor: 'rgba(99, 102, 241, 0.8)',
+                cursorColor: 'rgba(255, 255, 255, 0.5)',
+                barWidth: 2,
+                barGap: 1,
+                height: 48,
+                barRadius: 2,
+                normalize: true,
+                interact: true,
+                hideScrollbar: true,
+                fillParent: true
+            });
+
+            // WaveSurfer events
+            this.wavesurfer.on('ready', () => {
+                this.duration = this.wavesurfer.getDuration();
+                if (this.isPlaying) this.wavesurfer.play();
+            });
+
+            this.wavesurfer.on('audioprocess', (currentTime) => {
+                this.currentTime = currentTime;
+            });
+
+            this.wavesurfer.on('finish', () => {
+                if (this.loopMode === 'one') {
+                    this.wavesurfer.play(0);
+                } else if (this.loopMode === 'all') {
+                    this.nextTrack();
+                } else {
+                    this.isPlaying = false;
+                }
+            });
+
+            // Load saved volume
+            const savedVolume = localStorage.getItem('playerVolume') || 100;
+            this.volume = parseInt(savedVolume);
+            this.wavesurfer.setVolume(this.volume / 100);
+        },
+
+        togglePlay() {
+            this.isPlaying = !this.isPlaying;
+            this.wavesurfer.playPause();
+        },
+
+        toggleMute() {
+            if (this.isMuted) {
+                this.volume = this.previousVolume;
+            } else {
+                this.previousVolume = this.volume;
+                this.volume = 0;
+            }
+            this.isMuted = !this.isMuted;
+            this.updateVolume();
+        },
+
+        updateVolume() {
+            this.wavesurfer.setVolume(this.volume / 100);
+            localStorage.setItem('playerVolume', this.volume);
+        },
+
+        toggleLoop() {
+            switch (this.loopMode) {
+                case 'off': this.loopMode = 'all'; break;
+                case 'all': this.loopMode = 'one'; break;
+                case 'one': this.loopMode = 'off'; break;
+            }
+        },
+
+        toggleFavorite() {
+            if (!this.currentTrack) return;
+            
+            fetch(`/api/favorites/${this.currentTrack.id}/`, {
+                method: this.isFavorite ? 'DELETE' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                this.isFavorite = !this.isFavorite;
+            });
+        },
+
+        purchaseBeat() {
+            if (!this.currentTrack) return;
+            window.location.href = `/beat/${this.currentTrack.id}/#purchase`;
+        },
+
+        formatTime(seconds) {
+            if (!seconds) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        },
+
+        get volumeIcon() {
+            if (this.volume === 0 || this.isMuted) return 'fa-volume-mute';
+            if (this.volume < 50) return 'fa-volume-down';
+            return 'fa-volume-up';
+        }
+    }));
+});
+</script> 

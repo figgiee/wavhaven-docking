@@ -1,0 +1,106 @@
+{% load static %}
+
+<header x-data="{ 
+    mobileMenuOpen: false,
+    userMenuOpen: false,
+    genreMenuOpen: false,
+    cartCount: $store.cart.count
+}" class="fixed top-0 left-0 right-0 z-50 bg-dark/80 backdrop-blur-md border-b border-white/5">
+    <nav class="h-16">
+        <div class="content-container h-full">
+            <div class="flex items-center justify-between h-full">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <a href="{% url 'beat_list' %}" class="flex items-center group">
+                        <span class="text-lg font-bold tracking-tight">
+                            <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">WAV</span>
+                            <span class="text-white group-hover:text-gray-200 transition-colors duration-200">HAVEN</span>
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="{% url 'beat_list' %}" class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200">
+                        Explore
+                    </a>
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" @click.away="open = false" 
+                                class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200 inline-flex items-center">
+                            <span>Genres</span>
+                            <svg class="ml-1.5 h-4 w-4 opacity-50" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" x-transition class="absolute left-0 mt-2 w-48 rounded-lg bg-dark/95 backdrop-blur-md border border-white/10 shadow-xl">
+                            <div class="py-1" role="menu">
+                                {% for genre in genres %}
+                                <a href="{% url 'beat_list' %}?genre={{ genre.name|lower }}" 
+                                   class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
+                                    {{ genre.name }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-xl px-8">
+                    <form action="{% url 'beat_list' %}" method="get" class="w-full">
+                        <div class="relative">
+                            <input type="text" name="q" 
+                                   placeholder="SEARCH FOR BEATS, MELODIES, & DRUMKITS" 
+                                   class="w-full h-10 rounded-lg pl-4 pr-10 text-sm text-white placeholder-gray-500 bg-white/5 border border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-200">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" @click.away="open = false" 
+                                class="flex items-center space-x-2 text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200">
+                            <img src="{{ user.userprofile.get_avatar_url }}" 
+                                 alt="{{ user.username }}" 
+                                 class="w-8 h-8 rounded-full object-cover border border-white/10">
+                        </button>
+                        <div x-show="open" x-transition class="absolute right-0 mt-2 w-48 rounded-lg bg-dark/95 backdrop-blur-md border border-white/10 shadow-xl">
+                            <div class="py-1">
+                                <a href="{% url 'dashboard' %}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
+                                    Dashboard
+                                </a>
+                                <a href="{% url 'beat_upload' %}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
+                                    Upload Beat
+                                </a>
+                                <form action="{% url 'logout' %}" method="post" class="block">
+                                    {% csrf_token %}
+                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
+                                        Logout
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200">
+                        Log in
+                    </a>
+                    <a href="{% url 'register' %}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors duration-200">
+                        Get Started
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- Spacer to prevent content from being hidden under fixed header -->
+<div class="h-16"></div> 

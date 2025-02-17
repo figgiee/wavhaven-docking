@@ -1,0 +1,105 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for beat in beats %}
+        <div class="beat-card rounded-xl overflow-hidden"
+             x-data="{ 
+                isPlaying: false,
+                track: {
+                    id: {{ beat.id }},
+                    title: '{{ beat.title|escapejs }}',
+                    producer: '{{ beat.producer.username|escapejs }}',
+                    audioUrl: '{{ beat.audio_file.url|escapejs }}',
+                    coverImage: '{{ beat.get_cover_image_url|escapejs }}'
+                }
+             }"
+             @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)"
+             data-beat-id="{{ beat.id }}"
+             class="cursor-pointer group">
+            
+            <!-- Beat Image and Play Button -->
+            <div class="aspect-square relative overflow-hidden group">
+                <div class="image-container w-full h-full transition-transform duration-300 group-hover:scale-105">
+                    <img src="{{ beat.get_cover_image_url }}" 
+                         alt="{{ beat.title }}" 
+                         class="w-full h-full object-cover">
+                </div>
+                
+                <!-- Play Button Overlay -->
+                {% if beat.audio_file %}
+                <button @click.stop="$dispatch('play-track', track)"
+                        class="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all duration-300">
+                    <div class="play-button w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center transform transition-all duration-300"
+                         :class="{ 'scale-95 bg-indigo-500/20': isPlaying, 'hover:scale-110': !isPlaying }">
+                        <i class="fas text-xl text-white transition-all duration-300"
+                           :class="{ 
+                               'fa-pause scale-95': isPlaying, 
+                               'fa-play ml-1 scale-100': !isPlaying 
+                           }"></i>
+                    </div>
+                </button>
+                {% endif %}
+            </div>
+            
+            <!-- Beat Information -->
+            <div class="p-4">
+                <div class="flex items-start justify-between gap-4 mb-2">
+                    <div class="flex-1 min-w-0">
+                        <a href="{% url 'beat_detail' beat.id %}" class="block group">
+                            <h3 class="text-base font-medium text-white leading-tight truncate transition-colors duration-300"
+                                :class="{ 'text-indigo-400': isPlaying }">
+                                {{ beat.title }}
+                            </h3>
+                            <p class="text-sm text-gray-400 truncate">{{ beat.producer.username }}</p>
+                        </a>
+                    </div>
+                    <button @click.stop 
+                            class="flex-shrink-0 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors duration-200">
+                        <i class="fas fa-plus text-xs text-white/70"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center justify-between text-sm">
+                    <span class="font-medium text-indigo-400">${{ beat.price }}</span>
+                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                        {% if beat.bpm %}<span>{{ beat.bpm }} BPM</span>{% endif %}
+                        {% if beat.bpm and beat.key %}<span>•</span>{% endif %}
+                        {% if beat.key %}<span>{{ beat.key }}</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Featured Artists Section -->
+    <section class="mt-24 mb-24">
+        <h2 class="text-2xl font-bold mb-8">Featured Artists</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for producer in featured_producers|slice:":4" %}
+            <div class="beat-card p-6 text-center rounded-xl">
+                <img src="{{ producer.userprofile.get_avatar_url }}" 
+                     alt="{{ producer.username }}" 
+                     class="w-20 h-20 rounded-full mx-auto mb-4 object-cover border border-white/10">
+                <h3 class="font-medium text-lg mb-2">{{ producer.username }}</h3>
+                <p class="text-sm text-gray-400">{{ producer.userprofile.bio|truncatechars:60 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="mb-24">
+        <div class="beat-card p-12 text-center rounded-xl">
+            <h2 class="text-3xl font-bold mb-4">Start Selling Your Beats Today</h2>
+            <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">Join thousands of producers making a living on WavHaven</p>
+            <a href="{% url 'register' %}" class="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg hover:from-indigo-400 hover:to-purple-400 transition-all duration-200">
+                Get Started
+            </a>
+        </div>
+    </section>
+</div>
+{% endblock %} 

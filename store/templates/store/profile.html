@@ -1,0 +1,241 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+        <!-- Profile Header -->
+        <div class="relative h-48 bg-gradient-to-r from-indigo-500 to-purple-600">
+            <div class="absolute -bottom-16 left-8">
+                <img src="{{ profile.get_avatar_url }}" alt="{{ profile_user.username }}'s avatar"
+                     class="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover">
+            </div>
+        </div>
+        
+        <!-- Profile Info -->
+        <div class="pt-20 px-8 pb-8">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">
+                        {{ profile.display_name|default:profile_user.username }}
+                    </h1>
+                    <p class="text-gray-500">@{{ profile_user.username }}</p>
+                </div>
+                
+                <!-- Follow/Edit Button -->
+                <div>
+                    {% if user.is_authenticated and user != profile_user %}
+                        <button 
+                            id="followBtn"
+                            data-username="{{ profile_user.username }}"
+                            data-following="{{ is_following|yesno:'true,false' }}"
+                            class="px-6 py-2 rounded-full font-semibold text-sm {% if is_following %}bg-gray-200 text-gray-700{% else %}bg-indigo-600 text-white hover:bg-indigo-700{% endif %}"
+                        >
+                            {% if is_following %}Following{% else %}Follow{% endif %}
+                        </button>
+                    {% elif user == profile_user %}
+                        <a href="{% url 'edit_profile' %}" class="px-6 py-2 rounded-full bg-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-300">
+                            Edit Profile
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="flex gap-6 mt-4">
+                <div class="text-center">
+                    <span class="block text-2xl font-bold text-gray-900">{{ uploaded_beats.count }}</span>
+                    <span class="text-gray-500">Beats</span>
+                </div>
+                <div class="text-center">
+                    <span class="block text-2xl font-bold text-gray-900" id="followerCount">{{ follower_count }}</span>
+                    <span class="text-gray-500">Followers</span>
+                </div>
+                <div class="text-center">
+                    <span class="block text-2xl font-bold text-gray-900">{{ following_count }}</span>
+                    <span class="text-gray-500">Following</span>
+                </div>
+            </div>
+            
+            <!-- Bio -->
+            {% if profile.bio %}
+            <div class="mt-6">
+                <p class="text-gray-700 whitespace-pre-line">{{ profile.bio }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Location & Website -->
+            <div class="mt-4 flex flex-wrap gap-4">
+                {% if profile.location %}
+                <div class="flex items-center text-gray-600">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    {{ profile.location }}
+                </div>
+                {% endif %}
+                
+                {% if profile.website %}
+                <a href="{{ profile.website }}" target="_blank" rel="noopener noreferrer" class="flex items-center text-indigo-600 hover:text-indigo-700">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                    Website
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Social Links -->
+            <div class="mt-6 flex flex-wrap gap-4">
+                {% if profile.soundcloud_link %}
+                <a href="{{ profile.soundcloud_link }}" target="_blank" rel="noopener noreferrer" class="text-orange-500 hover:text-orange-600">
+                    <i class="fab fa-soundcloud text-2xl"></i>
+                </a>
+                {% endif %}
+                
+                {% if profile.bandcamp_link %}
+                <a href="{{ profile.bandcamp_link }}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:text-indigo-600">
+                    <i class="fab fa-bandcamp text-2xl"></i>
+                </a>
+                {% endif %}
+                
+                {% if profile.youtube_link %}
+                <a href="{{ profile.youtube_link }}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-600">
+                    <i class="fab fa-youtube text-2xl"></i>
+                </a>
+                {% endif %}
+                
+                {% if profile.spotify_link %}
+                <a href="{{ profile.spotify_link }}" target="_blank" rel="noopener noreferrer" class="text-green-500 hover:text-green-600">
+                    <i class="fab fa-spotify text-2xl"></i>
+                </a>
+                {% endif %}
+                
+                {% if profile.twitter_link %}
+                <a href="{{ profile.twitter_link }}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-500">
+                    <i class="fab fa-twitter text-2xl"></i>
+                </a>
+                {% endif %}
+                
+                {% if profile.instagram_link %}
+                <a href="{{ profile.instagram_link }}" target="_blank" rel="noopener noreferrer" class="text-pink-500 hover:text-pink-600">
+                    <i class="fab fa-instagram text-2xl"></i>
+                </a>
+                {% endif %}
+                
+                {% if profile.facebook_link %}
+                <a href="{{ profile.facebook_link }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700">
+                    <i class="fab fa-facebook text-2xl"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="mt-8" x-data="{ activeTab: 'beats' }">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8">
+                <button @click="activeTab = 'beats'"
+                        :class="{'border-indigo-500 text-indigo-600': activeTab === 'beats',
+                                'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'beats'}"
+                        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Beats
+                </button>
+                {% if user == profile_user %}
+                <button @click="activeTab = 'purchased'"
+                        :class="{'border-indigo-500 text-indigo-600': activeTab === 'purchased',
+                                'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'purchased'}"
+                        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Purchased
+                </button>
+                {% endif %}
+            </nav>
+        </div>
+        
+        <!-- Beats Grid -->
+        <div x-show="activeTab === 'beats'" class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {% for beat in uploaded_beats %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <a href="{% url 'beat_detail' beat.pk %}" class="block">
+                    <img src="{{ beat.get_cover_image_url }}" alt="{{ beat.title }}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ beat.title }}</h3>
+                        <p class="text-sm text-gray-500">{{ beat.created_at|date }}</p>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 col-span-full text-center py-8">No beats uploaded yet.</p>
+            {% endfor %}
+        </div>
+        
+        <!-- Purchased Beats -->
+        {% if user == profile_user %}
+        <div x-show="activeTab === 'purchased'" class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {% for beat in profile.purchased_beats.all %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <a href="{% url 'beat_detail' beat.pk %}" class="block">
+                    <img src="{{ beat.get_cover_image_url }}" alt="{{ beat.title }}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ beat.title }}</h3>
+                        <p class="text-sm text-gray-500">by {{ beat.producer.username }}</p>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 col-span-full text-center py-8">No beats purchased yet.</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const followBtn = document.getElementById('followBtn');
+    if (followBtn) {
+        followBtn.addEventListener('click', function() {
+            const username = this.dataset.username;
+            const isFollowing = this.dataset.following === 'true';
+            const url = isFollowing ? 
+                `{% url 'unfollow_user' 'USERNAME' %}`.replace('USERNAME', username) :
+                `{% url 'follow_user' 'USERNAME' %}`.replace('USERNAME', username);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update follower count
+                    document.getElementById('followerCount').textContent = data.follower_count;
+                    
+                    // Toggle button state
+                    this.dataset.following = (!isFollowing).toString();
+                    if (!isFollowing) {
+                        this.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                        this.classList.add('bg-gray-200', 'text-gray-700');
+                        this.textContent = 'Following';
+                    } else {
+                        this.classList.remove('bg-gray-200', 'text-gray-700');
+                        this.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                        this.textContent = 'Follow';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

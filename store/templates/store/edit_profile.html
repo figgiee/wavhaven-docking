@@ -1,0 +1,295 @@
+<<<<<<< HEAD
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+        <div class="px-8 py-6">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Edit Profile</h1>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Email -->
+                <div>
+                    <label for="{{ user_form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Email Address
+                    </label>
+                    <div class="mt-1">
+                        {{ user_form.email }}
+                        {% if user_form.email.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            {{ user_form.email.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Display Name -->
+                <div>
+                    <label for="{{ profile_form.display_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Display Name
+                    </label>
+                    <div class="mt-1">
+                        {{ profile_form.display_name }}
+                        {% if profile_form.display_name.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            {{ profile_form.display_name.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Avatar -->
+                <div>
+                    <label for="{{ profile_form.avatar.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Profile Picture
+                    </label>
+                    <div class="mt-1 flex items-center space-x-4">
+                        <img src="{{ user.userprofile.get_avatar_url }}" alt="Current avatar" class="w-16 h-16 rounded-full object-cover">
+                        <div class="flex-1">
+                            {{ profile_form.avatar }}
+                            {% if profile_form.avatar.errors %}
+                            <p class="mt-2 text-sm text-red-600">
+                                {{ profile_form.avatar.errors.0 }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bio -->
+                <div>
+                    <label for="{{ profile_form.bio.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Bio
+                    </label>
+                    <div class="mt-1">
+                        {{ profile_form.bio }}
+                        {% if profile_form.bio.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            {{ profile_form.bio.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Location -->
+                <div>
+                    <label for="{{ profile_form.location.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Location
+                    </label>
+                    <div class="mt-1">
+                        {{ profile_form.location }}
+                        {% if profile_form.location.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            {{ profile_form.location.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Website -->
+                <div>
+                    <label for="{{ profile_form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Website
+                    </label>
+                    <div class="mt-1">
+                        {{ profile_form.website }}
+                        {% if profile_form.website.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            {{ profile_form.website.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Social Links -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Social Media Links</h3>
+                    
+                    <!-- SoundCloud -->
+                    <div>
+                        <label for="{{ profile_form.soundcloud_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            SoundCloud
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.soundcloud_link }}
+                        </div>
+                    </div>
+                    
+                    <!-- Bandcamp -->
+                    <div>
+                        <label for="{{ profile_form.bandcamp_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Bandcamp
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.bandcamp_link }}
+                        </div>
+                    </div>
+                    
+                    <!-- YouTube -->
+                    <div>
+                        <label for="{{ profile_form.youtube_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            YouTube
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.youtube_link }}
+                        </div>
+                    </div>
+                    
+                    <!-- Spotify -->
+                    <div>
+                        <label for="{{ profile_form.spotify_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Spotify
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.spotify_link }}
+                        </div>
+                    </div>
+                    
+                    <!-- Twitter -->
+                    <div>
+                        <label for="{{ profile_form.twitter_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Twitter
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.twitter_link }}
+                        </div>
+                    </div>
+                    
+                    <!-- Instagram -->
+                    <div>
+                        <label for="{{ profile_form.instagram_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Instagram
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.instagram_link }}
+                        </div>
+                    </div>
+                    
+                    <!-- Facebook -->
+                    <div>
+                        <label for="{{ profile_form.facebook_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Facebook
+                        </label>
+                        <div class="mt-1">
+                            {{ profile_form.facebook_link }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Genres -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">
+                        Genres
+                    </label>
+                    <div class="mt-2">
+                        {{ profile_form.genres }}
+                        {% if profile_form.genres.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            {{ profile_form.genres.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+    /* Style form inputs */
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    textarea {
+        @apply w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500;
+    }
+    
+    /* Style checkboxes */
+    input[type="checkbox"] {
+        @apply rounded border-gray-300 text-indigo-600 focus:ring-indigo-500;
+    }
+    
+    /* Style file input */
+    input[type="file"] {
+        @apply block w-full text-sm text-gray-500
+        file:mr-4 file:py-2 file:px-4
+        file:rounded-full file:border-0
+        file:text-sm file:font-semibold
+        file:bg-indigo-50 file:text-indigo-700
+        hover:file:bg-indigo-100;
+    }
+</style>
+{% endblock %}
+=======
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-6">Edit Profile</h2>
+    
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">First Name</label>
+                <input type="text" name="first_name" value="{{ user.first_name }}"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Last Name</label>
+                <input type="text" name="last_name" value="{{ user.last_name }}"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black">
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <input type="email" name="email" value="{{ user.email }}"
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Bio</label>
+            <textarea name="bio" rows="3"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black">{{ user.userprofile.bio }}</textarea>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Website</label>
+            <input type="url" name="website" value="{{ user.userprofile.website }}"
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Profile Picture</label>
+            <input type="file" name="avatar" accept="image/*"
+                   class="mt-1 block w-full">
+        </div>
+        
+        <div class="flex justify-end space-x-4">
+            <a href="{% url 'dashboard' %}" 
+               class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                Cancel
+            </a>
+            <button type="submit" 
+                    class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+>>>>>>> 43e6d2dca8d245f001e712240bfadecec0527f1e
+{% endblock %} 

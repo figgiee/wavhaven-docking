@@ -1,0 +1,219 @@
+{% load static %}
+
+<div x-data="audioPlayer" 
+     class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white shadow-lg transition-all transform"
+     :class="{ 'h-20': !isMinimized, 'h-12': isMinimized }"
+     role="region"
+     aria-label="Audio Player">
+    
+    <!-- Main player container -->
+    <div class="container mx-auto px-4 h-full">
+        <div class="flex items-center justify-between h-full gap-4">
+            
+            <!-- Track info -->
+            <div class="flex items-center gap-3 min-w-0 flex-shrink-0 w-1/4">
+                <template x-if="currentTrack">
+                    <img :src="currentTrack.imageUrl" 
+                         :alt="currentTrack.title + ' artwork'"
+                         class="w-12 h-12 rounded shadow"
+                         :class="{ 'w-8 h-8': isMinimized }">
+                </template>
+                
+                <div class="min-w-0 flex-1">
+                    <h3 class="font-medium truncate" :class="{ 'text-sm': isMinimized }">
+                        <span x-text="currentTrack?.title || 'No track selected'"></span>
+                    </h3>
+                    <p class="text-sm text-gray-400 truncate" x-show="!isMinimized">
+                        <span x-text="currentTrack?.artist || ''"></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Player controls -->
+            <div class="flex-1 max-w-4xl">
+                <div class="flex flex-col gap-2">
+                    <!-- Control buttons -->
+                    <div class="flex items-center justify-center gap-4">
+                        <!-- Shuffle -->
+                        <button @click="toggleShuffle"
+                                class="p-2 hover:text-white transition-colors"
+                                :class="{ 'text-indigo-400': isShuffled, 'text-gray-400': !isShuffled }"
+                                aria-label="Toggle shuffle">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                <path fill-rule="evenodd" d="M4.293 15.707a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+
+                        <!-- Previous -->
+                        <button @click="previousTrack"
+                                :disabled="!hasPreviousTrack"
+                                class="p-2 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                :class="hasPreviousTrack ? 'text-gray-400' : 'text-gray-600'"
+                                aria-label="Previous track">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z"/>
+                            </svg>
+                        </button>
+
+                        <!-- Play/Pause -->
+                        <button @click="togglePlay"
+                                :disabled="!currentTrack"
+                                class="p-3 rounded-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
+                                :class="{ 'w-12 h-12': !isMinimized, 'w-8 h-8': isMinimized }"
+                                aria-label="Toggle play">
+                            <template x-if="!isPlaying">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                                </svg>
+                            </template>
+                            <template x-if="isPlaying">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                            </template>
+                        </button>
+
+                        <!-- Next -->
+                        <button @click="nextTrack"
+                                :disabled="!hasNextTrack"
+                                class="p-2 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                :class="hasNextTrack ? 'text-gray-400' : 'text-gray-600'"
+                                aria-label="Next track">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 6v2.798L4.555 5.168z"/>
+                            </svg>
+                        </button>
+
+                        <!-- Repeat -->
+                        <button @click="toggleRepeat"
+                                class="p-2 hover:text-white transition-colors relative"
+                                :class="{
+                                    'text-indigo-400': repeatMode !== 'off',
+                                    'text-gray-400': repeatMode === 'off'
+                                }"
+                                aria-label="Toggle repeat">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                            </svg>
+                            <span x-show="repeatMode === 'one'"
+                                  class="absolute -top-1 -right-1 text-xs bg-indigo-500 rounded-full w-4 h-4 flex items-center justify-center">
+                                1
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- Progress bar and waveform -->
+                    <div x-show="!isMinimized" class="relative">
+                        <div id="waveform" class="w-full"></div>
+                        
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="relative flex-1 h-1 group"
+                                 @click="seek"
+                                 role="slider"
+                                 :aria-valuenow="progress"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 aria-label="Playback progress">
+                                
+                                <div class="absolute inset-y-0 left-0 bg-indigo-500 group-hover:bg-indigo-400 transition-colors rounded-full"
+                                     :style="`width: ${progress}%`"></div>
+                                
+                                <div class="absolute h-3 w-3 -mt-1 -ml-1.5 bg-white rounded-full shadow transform scale-0 group-hover:scale-100 transition-transform"
+                                     :style="`left: ${progress}%`"></div>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-400 px-1">
+                            <span x-text="currentTime"></span>
+                            <span x-text="duration"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volume and additional controls -->
+            <div class="flex items-center gap-4 w-1/4 justify-end">
+                <!-- Favorite -->
+                <button @click="toggleFavorite"
+                        :disabled="!currentTrack"
+                        class="p-2 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        :class="{ 'text-red-500': isFavorite, 'text-gray-400': !isFavorite }"
+                        aria-label="Toggle favorite">
+                    <template x-if="!isFavorite">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </template>
+                    <template x-if="isFavorite">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                        </svg>
+                    </template>
+                </button>
+
+                <!-- Volume -->
+                <div class="flex items-center gap-2" x-show="!isMinimized">
+                    <button @click="toggleMute"
+                            class="p-2 hover:text-white transition-colors"
+                            :class="{ 'text-gray-400': !isMuted, 'text-gray-600': isMuted }"
+                            aria-label="Toggle mute">
+                        <template x-if="volume > 50">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"/>
+                            </svg>
+                        </template>
+                        <template x-if="volume > 0 && volume <= 50">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </template>
+                        <template x-if="volume === 0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" clip-rule="evenodd"/>
+                            </svg>
+                        </template>
+                    </button>
+                    <input type="range"
+                           x-model="volume"
+                           @input="updateVolume"
+                           class="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                           min="0"
+                           max="100"
+                           step="1"
+                           aria-label="Volume">
+                </div>
+
+                <!-- Minimize -->
+                <button @click="minimizePlayer"
+                        class="p-2 hover:text-white transition-colors text-gray-400"
+                        aria-label="Toggle player size">
+                    <template x-if="!isMinimized">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </template>
+                    <template x-if="isMinimized">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </template>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div x-show="isLoading"
+         class="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+    </div>
+
+    <!-- Error message -->
+    <div x-show="error"
+         class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full">
+        <div class="bg-red-500 text-white px-4 py-2 rounded-t shadow-lg">
+            <span x-text="error"></span>
+        </div>
+    </div>
+</div> 

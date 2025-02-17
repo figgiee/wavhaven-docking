@@ -1,0 +1,378 @@
+{% load static %}
+
+<div x-data="audioPlayer"
+     x-show="currentTrack"
+     x-transition:enter="transition ease-out duration-500"
+     x-transition:enter-start="opacity-0 translate-y-full"
+     x-transition:enter-end="opacity-100 translate-y-0"
+     x-transition:leave="transition ease-in duration-300"
+     x-transition:leave-start="opacity-100 translate-y-0"
+     x-transition:leave-end="opacity-0 translate-y-full"
+     x-cloak
+     @play-track.window="handlePlayTrack($event.detail)"
+     class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 h-24 transform">
+    <div class="max-w-7xl mx-auto px-4 h-full">
+        <div class="flex items-center justify-between h-full gap-8">
+            <!-- Track Info -->
+            <div class="flex items-center gap-4 w-1/4">
+                <img :src="currentTrack?.coverImage" 
+                     :alt="currentTrack?.title"
+                     class="w-16 h-16 object-cover rounded">
+                <div class="min-w-0">
+                    <a :href="'/beat/' + currentTrack?.id" 
+                       class="block text-sm font-medium text-white hover:text-indigo-400 truncate transition-colors">
+                        <span x-text="currentTrack?.title"></span>
+                    </a>
+                    <span x-text="currentTrack?.producer" 
+                          class="block text-xs text-gray-400 truncate"></span>
+                </div>
+            </div>
+
+            <!-- Player Controls -->
+            <div class="flex-1 flex flex-col items-center gap-2">
+                <div class="flex items-center gap-6">
+                    <button class="text-2xl text-white/70 hover:text-white transition-colors"
+                            @click="previousTrack">
+                        <i class="fas fa-backward-step"></i>
+                    </button>
+                    <button class="text-3xl text-white hover:text-white/90 transition-colors"
+                            @click="togglePlay">
+                        <i class="fas" :class="isPlaying ? 'fa-pause' : 'fa-play'"></i>
+                    </button>
+                    <button class="text-2xl text-white/70 hover:text-white transition-colors"
+                            @click="nextTrack">
+                        <i class="fas fa-forward-step"></i>
+                    </button>
+                    <button class="text-lg text-white/70 hover:text-white transition-colors"
+                            @click="toggleLoop">
+                        <i class="fas fa-repeat" :class="{ 'text-indigo-400': loopMode === 'on' }"></i>
+                    </button>
+                </div>
+                
+                <!-- Waveform -->
+                <div class="w-full flex items-center gap-3 text-xs text-gray-400">
+                    <span x-text="formatTime(currentTime)" class="tabular-nums"></span>
+                    <div class="flex-1 h-12" id="waveform"></div>
+                    <span x-text="formatTime(duration)" class="tabular-nums"></span>
+                </div>
+            </div>
+
+            <!-- Volume Control -->
+            <div class="flex items-center gap-4 w-1/4 justify-end">
+                <button @click="toggleMute" class="text-lg text-white/70 hover:text-white transition-colors">
+                    <i class="fas" :class="{
+                        'fa-volume-xmark': isMuted || volume === 0,
+                        'fa-volume-low': !isMuted && volume > 0 && volume < 50,
+                        'fa-volume-high': !isMuted && volume >= 50
+                    }"></i>
+                </button>
+                <input type="range" 
+                       x-model="volume" 
+                       @input="updateVolume"
+                       class="w-24 accent-indigo-400"
+                       min="0" 
+                       max="100">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+[x-cloak] { display: none !important; }
+</style>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('audioPlayer', () => ({
+        currentTrack: null,
+        isPlaying: false,
+        isLoading: false,
+        error: null,
+        progress: 0,
+        volume: 100,
+        isMuted: false,
+        loopMode: 'off',
+        currentTime: 0,
+        duration: 0,
+        wavesurfer: null,
+        sound: null,
+        lastPosition: 0,
+
+        init() {
+            this.initializeWaveSurfer();
+            
+            // Load saved volume
+            const savedVolume = localStorage.getItem('playerVolume');
+            if (savedVolume !== null) {
+                this.volume = parseInt(savedVolume);
+            }
+
+            // Load saved track state
+            const savedTrack = localStorage.getItem('currentTrack');
+            const savedTime = localStorage.getItem('currentTime');
+            const wasPlaying = localStorage.getItem('isPlaying') === 'true';
+            
+            if (savedTrack) {
+                const track = JSON.parse(savedTrack);
+                this.loadTrack(track, wasPlaying, parseFloat(savedTime));
+            }
+
+            // Save state before page unload
+            window.addEventListener('beforeunload', () => {
+                if (this.currentTrack) {
+                    localStorage.setItem('currentTrack', JSON.stringify(this.currentTrack));
+                    localStorage.setItem('currentTime', this.sound ? this.sound.seek() : 0);
+                    localStorage.setItem('isPlaying', this.isPlaying);
+                }
+            });
+
+            // Handle visibility change
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && this.currentTrack) {
+                    // Update waveform position when returning to the page
+                    if (this.sound && this.wavesurfer) {
+                        const currentTime = this.sound.seek();
+                        this.wavesurfer.seekTo(currentTime / this.duration);
+                    }
+                }
+            });
+        },
+
+        initializeWaveSurfer() {
+            if (this.wavesurfer) {
+                this.wavesurfer.destroy();
+            }
+
+            this.wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                height: 48,
+                waveColor: 'rgba(255, 255, 255, 0.2)',
+                progressColor: 'rgba(255, 255, 255, 0.4)',
+                cursorColor: '#fff',
+                cursorWidth: 2,
+                barWidth: 2,
+                barGap: 1,
+                barRadius: 3,
+                responsive: true,
+                interact: true,
+                hideScrollbar: true,
+                normalize: true,
+                barHeight: 0.8,
+                fillParent: true,
+                minPxPerSec: 1,
+                autoplay: false,
+                backend: 'MediaElement'
+            });
+
+            // Handle waveform clicks
+            this.wavesurfer.on('click', (position) => {
+                if (this.sound) {
+                    const seekTime = position * this.sound.duration();
+                    this.sound.seek(seekTime);
+                    this.lastPosition = position;
+                }
+            });
+
+            this.wavesurfer.on('ready', () => {
+                this.wavesurfer.setVolume(0);
+                if (this.sound && this.lastPosition > 0) {
+                    this.wavesurfer.seekTo(this.lastPosition);
+                }
+            });
+        },
+
+        handlePlayTrack(track) {
+            console.log('Handling play track:', track);
+            if (!this.currentTrack || this.currentTrack.id !== track.id) {
+                this.loadTrack(track);
+            } else {
+                this.togglePlay();
+            }
+        },
+
+        loadTrack(track, shouldPlay = true, startTime = 0) {
+            console.log('Loading track:', track);
+            this.isLoading = true;
+            this.currentTrack = track;
+            
+            // Save current track to localStorage
+            localStorage.setItem('currentTrack', JSON.stringify(track));
+            
+            // Clean up previous audio
+            if (this.sound) {
+                this.lastPosition = this.sound.seek() / this.sound.duration();
+                this.sound.unload();
+            }
+
+            // Initialize new Howl instance
+            this.sound = new Howl({
+                src: [track.audioUrl],
+                html5: true,
+                volume: this.volume / 100,
+                onload: () => {
+                    console.log('Howl loaded');
+                    this.duration = this.sound.duration();
+                    this.isLoading = false;
+                    
+                    // Seek to saved position if specified
+                    if (startTime > 0) {
+                        this.sound.seek(startTime);
+                        this.lastPosition = startTime / this.duration;
+                    }
+                    
+                    if (shouldPlay) {
+                        this.play();
+                    }
+                },
+                onplay: () => {
+                    console.log('Howl playing');
+                    this.isPlaying = true;
+                    localStorage.setItem('isPlaying', 'true');
+                    this.updatePlayStates();
+                    requestAnimationFrame(this.step.bind(this));
+                },
+                onpause: () => {
+                    console.log('Howl paused');
+                    this.isPlaying = false;
+                    localStorage.setItem('isPlaying', 'false');
+                    this.updatePlayStates();
+                },
+                onstop: () => {
+                    console.log('Howl stopped');
+                    this.isPlaying = false;
+                    localStorage.setItem('isPlaying', 'false');
+                    this.updatePlayStates();
+                },
+                onend: () => {
+                    console.log('Howl ended');
+                    if (this.loopMode === 'on') {
+                        this.sound.play();
+                    } else {
+                        this.isPlaying = false;
+                        localStorage.setItem('isPlaying', 'false');
+                        this.updatePlayStates();
+                    }
+                },
+                onseek: () => {
+                    requestAnimationFrame(this.step.bind(this));
+                }
+            });
+
+            // Load waveform
+            if (this.wavesurfer) {
+                this.wavesurfer.load(track.audioUrl);
+            }
+        },
+
+        play() {
+            if (this.sound && !this.isPlaying) {
+                this.sound.play();
+            }
+        },
+
+        togglePlay() {
+            if (!this.sound) return;
+            
+            if (this.isPlaying) {
+                console.log('Pausing...');
+                this.sound.pause();
+            } else {
+                console.log('Playing...');
+                this.sound.play();
+            }
+        },
+
+        step() {
+            if (this.sound && this.isPlaying) {
+                const currentTime = this.sound.seek();
+                this.currentTime = currentTime;
+                this.lastPosition = currentTime / this.duration;
+                
+                // Save current time to localStorage
+                localStorage.setItem('currentTime', currentTime);
+                
+                // Update waveform position
+                if (this.wavesurfer) {
+                    this.wavesurfer.seekTo(this.lastPosition);
+                }
+                
+                requestAnimationFrame(this.step.bind(this));
+            }
+        },
+
+        updatePlayStates() {
+            this.$dispatch('playstate-changed', {
+                trackId: this.currentTrack?.id,
+                isPlaying: this.isPlaying
+            });
+        },
+
+        toggleLoop() {
+            this.loopMode = this.loopMode === 'off' ? 'on' : 'off';
+            if (this.sound) {
+                this.sound.loop(this.loopMode === 'on');
+            }
+        },
+
+        updateVolume() {
+            if (this.sound) {
+                this.sound.volume(this.volume / 100);
+            }
+            localStorage.setItem('playerVolume', this.volume);
+        },
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            if (this.sound) {
+                this.sound.mute(this.isMuted);
+            }
+        },
+
+        previousTrack() {
+            if (this.sound) {
+                this.sound.seek(0);
+                this.lastPosition = 0;
+                if (this.wavesurfer) {
+                    this.wavesurfer.seekTo(0);
+                }
+            }
+        },
+
+        nextTrack() {
+            if (this.sound) {
+                this.sound.seek(this.sound.duration());
+                this.lastPosition = 1;
+                if (this.wavesurfer) {
+                    this.wavesurfer.seekTo(1);
+                }
+            }
+        },
+
+        seek(e) {
+            if (!this.sound) return;
+            
+            const { left, width } = e.currentTarget.getBoundingClientRect();
+            const clickPosition = (e.clientX - left) / width;
+            const seekTime = this.sound.duration() * clickPosition;
+            
+            this.sound.seek(seekTime);
+            this.lastPosition = clickPosition;
+            
+            if (this.wavesurfer) {
+                this.wavesurfer.seekTo(clickPosition);
+            }
+            
+            if (!this.isPlaying) {
+                this.togglePlay();
+            }
+        },
+
+        formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+    }));
+});
+</script> 

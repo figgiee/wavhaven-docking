@@ -1,0 +1,36 @@
+# Django and REST framework
+Django==4.2.0
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+
+# Image and file processing
+Pillow==10.0.0  # For image processing and thumbnails
+python-magic==0.4.27  # For file type detection
+django-storages==1.14.0  # For handling file storage (AWS S3, etc.)
+
+# Audio processing
+pydub==0.25.1  # For audio processing and waveform generation
+numpy==1.24.0  # Required for audio processing
+
+# Development and deployment
+python-dotenv==1.0.0  # Environment variable management
+whitenoise==6.6.0  # Static file serving
+gunicorn==21.2.0  # Production server
+
+# Database (PostgreSQL for production)
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+
+# Authentication and permissions
+django-allauth==0.57.0  # For social authentication
+django-guardian==2.4.0  # For object-level permissions
+
+# Cache and session
+django-redis==5.4.0  # For caching and session storage
+
+# API documentation
+drf-yasg==1.21.7  # Swagger/OpenAPI documentation
+
+# Testing
+pytest==7.4.3
+pytest-django==4.7.0
+coverage==7.3.2 
