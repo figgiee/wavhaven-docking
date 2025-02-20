@@ -1,106 +1,746 @@
 {% load static %}
 
-<header x-data="{ 
+<!-- Header -->
+<header class="site-header" x-data="{ 
+    exploreOpen: false, 
+    genresOpen: false,
+    selectedCategory: 'All Categories',
+    cartCount: {% if user.is_authenticated and user.cart_set.first %}{{ user.cart_set.first.cartitem_set.count }}{% else %}0{% endif %},
     mobileMenuOpen: false,
+    searchOpen: false,
     userMenuOpen: false,
-    genreMenuOpen: false,
-    cartCount: $store.cart.count
-}" class="fixed top-0 left-0 right-0 z-50 bg-dark/80 backdrop-blur-md border-b border-white/5">
-    <nav class="h-16">
-        <div class="content-container h-full">
-            <div class="flex items-center justify-between h-full">
-                <!-- Logo -->
-                <div class="flex-shrink-0">
-                    <a href="{% url 'beat_list' %}" class="flex items-center group">
-                        <span class="text-lg font-bold tracking-tight">
-                            <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">WAV</span>
-                            <span class="text-white group-hover:text-gray-200 transition-colors duration-200">HAVEN</span>
-                        </span>
-                    </a>
+    cartOpen: false,
+    searchQuery: '',
+    handleSearch() {
+        if (this.searchQuery.trim()) {
+            window.location.href = `{% url 'store:search' %}?q=${encodeURIComponent(this.searchQuery)}&category=${encodeURIComponent(this.selectedCategory)}`;
+        }
+    },
+    handleDropdownEnter(dropdownName) {
+        this[dropdownName] = true;
+    },
+    handleDropdownLeave(dropdownName) {
+        this[dropdownName] = false;
+    }
+}" @cart-updated.window="cartCount = $event.detail.count">
+    <!-- Main Navigation -->
+    <div class="header-container">
+        <nav class="header-nav">
+            <!-- Left Section: Logo -->
+            <a href="{% url 'store:landing_page' %}" class="flex items-center gap-3 pl-2">
+                <!-- Animated Sound Wave Logo -->
+                <div class="relative w-8 h-8 flex items-center justify-center">
+                    <!-- Sound Wave Animation Container -->
+                    <div class="sound-wave-container absolute inset-0">
+                        <div class="sound-bar bar-1"></div>
+                        <div class="sound-bar bar-2"></div>
+                        <div class="sound-bar bar-3"></div>
+                        <div class="sound-bar bar-4"></div>
+                        <div class="sound-bar bar-5"></div>
+                    </div>
                 </div>
+                <span class="text-lg font-light tracking-[0.15em] mr-8">wavhaven</span>
+            </a>
 
-                <!-- Navigation Links -->
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="{% url 'beat_list' %}" class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200">
-                        Explore
-                    </a>
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" @click.away="open = false" 
-                                class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200 inline-flex items-center">
-                            <span>Genres</span>
-                            <svg class="ml-1.5 h-4 w-4 opacity-50" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </button>
-                        <div x-show="open" x-transition class="absolute left-0 mt-2 w-48 rounded-lg bg-dark/95 backdrop-blur-md border border-white/10 shadow-xl">
-                            <div class="py-1" role="menu">
-                                {% for genre in genres %}
-                                <a href="{% url 'beat_list' %}?genre={{ genre.name|lower }}" 
-                                   class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                                    {{ genre.name }}
-                                </a>
-                                {% endfor %}
-                            </div>
+            <!-- Center Section: Navigation Links -->
+            <div class="nav-links">
+                <!-- Explore Dropdown -->
+                <div class="nav-dropdown" 
+                     @mouseenter="handleDropdownEnter('exploreOpen')" 
+                     @mouseleave="handleDropdownLeave('exploreOpen')">
+                    <button class="nav-button">
+                        <span>Explore</span>
+                        <svg class="nav-caret" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Explore Dropdown Menu -->
+                    <div x-show="exploreOpen" 
+                         x-transition:enter="dropdown-enter"
+                         x-transition:enter-start="dropdown-enter-start"
+                         x-transition:enter-end="dropdown-enter-end"
+                         x-transition:leave="dropdown-leave"
+                         x-transition:leave-start="dropdown-leave-start"
+                         x-transition:leave-end="dropdown-leave-end"
+                         class="dropdown-menu">
+                        <!-- Add a safe hover zone above the menu -->
+                        <div class="absolute h-3 -top-3 left-0 right-0"></div>
+                        <div class="dropdown-content">
+                            <a href="{% url 'store:explore_beats' %}" class="dropdown-item">Beats</a>
+                            <a href="{% url 'store:explore_loops' %}" class="dropdown-item">Loops</a>
+                            <a href="{% url 'store:explore_soundkits' %}" class="dropdown-item">Soundkits</a>
+                            <a href="{% url 'store:explore_presets' %}" class="dropdown-item">Presets</a>
+                            <a href="{% url 'store:trending' %}" class="dropdown-item">Trending</a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Search Bar -->
-                <div class="flex-1 max-w-xl px-8">
-                    <form action="{% url 'beat_list' %}" method="get" class="w-full">
-                        <div class="relative">
-                            <input type="text" name="q" 
-                                   placeholder="SEARCH FOR BEATS, MELODIES, & DRUMKITS" 
-                                   class="w-full h-10 rounded-lg pl-4 pr-10 text-sm text-white placeholder-gray-500 bg-white/5 border border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-200">
-                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                </svg>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                <!-- Upload Button (Replacing Genres) -->
+                <a href="{% url 'store:beat_upload' %}" class="nav-button">
+                    <span>Upload</span>
+                </a>
+            </div>
 
-                <!-- User Menu -->
-                <div class="flex items-center space-x-4">
-                    {% if user.is_authenticated %}
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" @click.away="open = false" 
-                                class="flex items-center space-x-2 text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200">
+            <!-- Right Section: Search, Auth and Cart -->
+            <div class="header-actions">
+                <!-- Search Button -->
+                <button @click="searchOpen = !searchOpen" class="icon-button">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+
+                <!-- Authentication -->
+                {% if user.is_authenticated %}
+                    <div class="nav-dropdown" 
+                         @mouseenter="handleDropdownEnter('userMenuOpen')" 
+                         @mouseleave="handleDropdownLeave('userMenuOpen')">
+                        <button class="nav-button flex items-center gap-2">
+                            <!-- User Avatar -->
                             <img src="{{ user.userprofile.get_avatar_url }}" 
                                  alt="{{ user.username }}" 
                                  class="w-8 h-8 rounded-full object-cover border border-white/10">
+                            <span class="hidden md:block">{{ user.username }}</span>
+                            <svg class="nav-caret" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
                         </button>
-                        <div x-show="open" x-transition class="absolute right-0 mt-2 w-48 rounded-lg bg-dark/95 backdrop-blur-md border border-white/10 shadow-xl">
-                            <div class="py-1">
-                                <a href="{% url 'dashboard' %}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                                    Dashboard
-                                </a>
-                                <a href="{% url 'beat_upload' %}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                                    Upload Beat
-                                </a>
-                                <form action="{% url 'logout' %}" method="post" class="block">
-                                    {% csrf_token %}
-                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                                        Logout
-                                    </button>
-                                </form>
+                        
+                        <!-- Enhanced User Menu Dropdown -->
+                        <div x-show="userMenuOpen"
+                             x-transition:enter="dropdown-enter"
+                             x-transition:enter-start="dropdown-enter-start"
+                             x-transition:enter-end="dropdown-enter-end"
+                             x-transition:leave="dropdown-leave"
+                             x-transition:leave-start="dropdown-leave-start"
+                             x-transition:leave-end="dropdown-leave-end"
+                             class="dropdown-menu w-72 right-0">
+                            <!-- Add a safe hover zone above the menu -->
+                            <div class="absolute h-3 -top-3 left-0 right-0"></div>
+                            <div class="dropdown-content divide-y divide-white/5">
+                                <!-- User Info Section -->
+                                <div class="px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <img src="{{ user.userprofile.get_avatar_url }}" 
+                                             alt="{{ user.username }}" 
+                                             class="w-12 h-12 rounded-full object-cover border border-white/10">
+                                        <div class="min-w-0">
+                                            <div class="text-sm font-medium text-white truncate">{{ user.get_full_name|default:user.username }}</div>
+                                            <div class="text-xs text-gray-400 truncate">{{ user.email }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Main Options -->
+                                <div class="py-2">
+                                    <a href="{% url 'store:dashboard' %}" class="dropdown-item">
+                                        <i class="fas fa-columns w-5"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                    <a href="{% url 'store:profile' user.username %}" class="dropdown-item">
+                                        <i class="fas fa-user w-5"></i>
+                                        <span>View Profile</span>
+                                    </a>
+                                    <a href="{% url 'store:edit_profile' %}" class="dropdown-item">
+                                        <i class="fas fa-cog w-5"></i>
+                                        <span>Account Settings</span>
+                                    </a>
+                                </div>
+
+                                <!-- Content Management -->
+                                <div class="py-2">
+                                    <a href="{% url 'store:favorites' %}" class="dropdown-item">
+                                        <i class="fas fa-heart w-5"></i>
+                                        <span>Favorites</span>
+                                    </a>
+                                    <a href="{% url 'store:dashboard' %}?tab=purchases" class="dropdown-item">
+                                        <i class="fas fa-download w-5"></i>
+                                        <span>My Purchases</span>
+                                    </a>
+                                    <a href="{% url 'store:dashboard' %}?tab=analytics" class="dropdown-item">
+                                        <i class="fas fa-chart-line w-5"></i>
+                                        <span>Sales & Analytics</span>
+                                    </a>
+                                </div>
+
+                                <!-- Sign Out -->
+                                <div class="py-2">
+                                    <form method="POST" action="{% url 'store:logout' %}" class="block">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-red-400 hover:text-red-300 w-full text-left">
+                                            <i class="fas fa-sign-out-alt w-5"></i>
+                                            <span>Sign Out</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    {% else %}
-                    <a href="{% url 'login' %}" class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200">
-                        Log in
+                {% else %}
+                    <a href="{% url 'login' %}" class="nav-button">
+                        <span>Login</span>
                     </a>
-                    <a href="{% url 'register' %}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors duration-200">
-                        Get Started
+                    <a href="{% url 'register' %}" class="nav-button primary">
+                        <span>Register</span>
                     </a>
-                    {% endif %}
+                {% endif %}
+
+                <!-- Cart Button -->
+                <a href="{% url 'store:cart' %}" class="icon-button relative">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span x-show="cartCount > 0" 
+                          x-text="cartCount"
+                          class="absolute -top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    </span>
+                </a>
+
+                <!-- Mobile Menu Button -->
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="mobile-menu-button">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Search Bar -->
+    <div x-show="searchOpen" 
+         x-transition:enter="search-enter"
+         x-transition:enter-start="search-enter-start"
+         x-transition:enter-end="search-enter-end"
+         x-transition:leave="search-leave"
+         x-transition:leave-start="search-leave-start"
+         x-transition:leave-end="search-leave-end"
+         class="search-bar">
+        <div class="search-container">
+            <div class="search-input-container">
+                <!-- Category Dropdown -->
+                <div class="search-category" x-data="{ open: false }">
+                    <button @click="open = !open" class="category-button">
+                        <span x-text="selectedCategory"></span>
+                        <svg class="category-caret" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <div x-show="open"
+                         @click.away="open = false"
+                         class="category-dropdown">
+                        <div class="category-list">
+                            <template x-for="category in ['All Categories', 'Beats', 'Loops', 'Soundkits', 'Presets', 'Producers']">
+                                <a href="#" 
+                                   @click.prevent="selectedCategory = category; open = false"
+                                   class="category-item"
+                                   x-text="category"></a>
+                            </template>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Search Input -->
+                <input type="text"
+                       x-model="searchQuery"
+                       @keyup.enter="handleSearch"
+                       class="search-input"
+                       placeholder="Search beats, loops, soundkits...">
             </div>
         </div>
-    </nav>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div x-show="mobileMenuOpen"
+         x-transition:enter="mobile-menu-enter"
+         x-transition:enter-start="mobile-menu-enter-start"
+         x-transition:enter-end="mobile-menu-enter-end"
+         x-transition:leave="mobile-menu-leave"
+         x-transition:leave-start="mobile-menu-leave-start"
+         x-transition:leave-end="mobile-menu-leave-end"
+         class="mobile-menu">
+        <div class="mobile-menu-content">
+            <a href="{% url 'store:explore_beats' %}" class="mobile-menu-item">Explore Beats</a>
+            <a href="{% url 'store:explore_loops' %}" class="mobile-menu-item">Explore Loops</a>
+            <a href="{% url 'store:explore_soundkits' %}" class="mobile-menu-item">Explore Soundkits</a>
+            <a href="{% url 'store:genre' 'hip-hop' %}" class="mobile-menu-item">Hip Hop</a>
+            <a href="{% url 'store:genre' 'trap' %}" class="mobile-menu-item">Trap</a>
+            <a href="{% url 'store:genre' 'rnb' %}" class="mobile-menu-item">R&B</a>
+            <a href="{% url 'login' %}" class="mobile-menu-item mobile-menu-cta">Sign In/Up</a>
+        </div>
+    </div>
 </header>
 
-<!-- Spacer to prevent content from being hidden under fixed header -->
-<div class="h-16"></div> 
+<style>
+/* Header Base Styles */
+.site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background-color: rgb(var(--background-color));
+}
+
+.header-container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem;
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 1rem;
+}
+
+/* Logo Styles */
+.header-logo {
+    flex-shrink: 0;
+    margin-right: auto;
+    padding-left: 0.5rem;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-right: 3rem;
+}
+
+.logo-symbol {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+.logo-ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: rotate 4s linear infinite;
+}
+
+.logo-pulse {
+    position: absolute;
+    inset: 25%;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.logo-text {
+    font-size: 1.5rem;
+    line-height: 1;
+    letter-spacing: 0.025em;
+    font-weight: 300;
+}
+
+.logo-text-primary {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.logo-text-secondary {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Navigation Links */
+.nav-links {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 3rem;
+}
+
+@media (min-width: 768px) {
+    .nav-links {
+        display: flex;
+    }
+}
+
+.nav-dropdown {
+    position: relative;
+}
+
+.nav-button {
+    display: inline-flex;
+    align-items: center;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: color 0.2s;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.nav-button:hover {
+    color: white;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.nav-caret {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-left: 0.5rem;
+    stroke: currentColor;
+    fill: none;
+    transition: transform 0.2s;
+}
+
+.nav-button:hover .nav-caret {
+    transform: rotate(-180deg);
+}
+
+/* Dropdown Menus */
+.dropdown-menu {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 0.75rem;
+    width: 14rem;
+    background: linear-gradient(to bottom right, rgba(28, 28, 28, 0.97), rgba(38, 38, 38, 0.97));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+}
+
+.dropdown-content {
+    padding: 0.5rem 0;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.75rem 1.25rem;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.dropdown-item:hover {
+    color: white;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.15), transparent);
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Header Actions */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.icon-button {
+    padding: 0.5rem;
+    color: white;
+    transition: color 0.2s;
+}
+
+.icon-button:hover {
+    color: white;
+    transform: scale(1.05);
+}
+
+.icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    stroke: currentColor;
+    fill: none;
+}
+
+.button {
+    display: none;
+    padding: 0.625rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+    .button {
+        display: inline-flex;
+    }
+}
+
+.button-primary {
+    color: white;
+    background-color: rgb(var(--accent-color));
+}
+
+.button-primary:hover {
+    background-color: rgb(var(--accent-color-dark));
+}
+
+.button-secondary {
+    color: rgb(var(--background-color));
+    background-color: white;
+}
+
+.button-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.cart-badge {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    background-color: rgb(var(--accent-color));
+    border-radius: 9999px;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-button {
+    display: block;
+    padding: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+@media (min-width: 768px) {
+    .mobile-menu-button {
+        display: none;
+    }
+}
+
+/* Search Bar */
+.search-bar {
+    position: absolute;
+    inset: 100% 0 auto;
+    background-color: rgba(var(--background-color), 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+}
+
+.search-container {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+}
+
+.search-input-container {
+    display: flex;
+    align-items: center;
+}
+
+.search-category {
+    position: relative;
+}
+
+.category-button {
+    display: flex;
+    align-items: center;
+    height: 2.5rem;
+    padding: 0 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px 0 0 9999px;
+}
+
+.category-caret {
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.375rem;
+    stroke: currentColor;
+    fill: none;
+}
+
+.search-input {
+    flex: 1;
+    height: 2.5rem;
+    padding: 0 1rem;
+    color: white;
+    font-size: 0.875rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 0 9999px 9999px 0;
+}
+
+.search-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgb(var(--accent-color));
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Mobile Menu */
+.mobile-menu {
+    position: absolute;
+    inset: 100% 0 auto;
+    background-color: rgba(var(--background-color), 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+}
+
+.mobile-menu-content {
+    padding: 1rem;
+}
+
+.mobile-menu-item {
+    display: block;
+    padding: 0.75rem;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.mobile-menu-item:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.12);
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.mobile-menu-cta {
+    color: white;
+    background-color: rgb(var(--accent-color));
+    text-align: center;
+}
+
+.mobile-menu-cta:hover {
+    background-color: rgb(var(--accent-color-dark));
+}
+
+/* Animations */
+@keyframes wave1 {
+    0%, 100% { height: 0.5rem; }
+    50% { height: 1.25rem; }
+}
+
+@keyframes wave2 {
+    0%, 100% { height: 0.75rem; }
+    50% { height: 1rem; }
+}
+
+@keyframes wave3 {
+    0%, 100% { height: 1rem; }
+    50% { height: 1.5rem; }
+}
+
+/* Transitions */
+.dropdown-enter { @apply transition ease-out duration-200; }
+.dropdown-enter-start { @apply opacity-0 translate-y-1; }
+.dropdown-enter-end { @apply opacity-100 translate-y-0; }
+.dropdown-leave { @apply transition ease-in duration-150; }
+.dropdown-leave-start { @apply opacity-100 translate-y-0; }
+.dropdown-leave-end { @apply opacity-0 translate-y-1; }
+
+.search-enter { @apply transition ease-out duration-200; }
+.search-enter-start { @apply opacity-0 -translate-y-4; }
+.search-enter-end { @apply opacity-100 translate-y-0; }
+.search-leave { @apply transition ease-in duration-150; }
+.search-leave-start { @apply opacity-100 translate-y-0; }
+.search-leave-end { @apply opacity-0 -translate-y-4; }
+
+.mobile-menu-enter { @apply transition ease-out duration-200; }
+.mobile-menu-enter-start { @apply opacity-0 -translate-y-4; }
+.mobile-menu-enter-end { @apply opacity-100 translate-y-0; }
+.mobile-menu-leave { @apply transition ease-in duration-150; }
+.mobile-menu-leave-start { @apply opacity-100 translate-y-0; }
+.mobile-menu-leave-end { @apply opacity-0 -translate-y-4; }
+
+/* Sound Wave Animation Styles */
+.sound-wave-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px;
+}
+
+.sound-bar {
+    width: 2px;
+    background: linear-gradient(to bottom, #6366f1, #a855f7);
+    border-radius: 999px;
+    animation: sound-wave 1.4s ease-in-out infinite;
+    opacity: 0.8;
+}
+
+.bar-1 { height: 60%; animation-delay: 0.0s; }
+.bar-2 { height: 90%; animation-delay: 0.25s; }
+.bar-3 { height: 100%; animation-delay: 0.5s; }
+.bar-4 { height: 90%; animation-delay: 0.75s; }
+.bar-5 { height: 60%; animation-delay: 1s; }
+
+@keyframes sound-wave {
+    0%, 100% {
+        transform: scaleY(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scaleY(0.5);
+        opacity: 1;
+    }
+}
+
+/* Logo hover effect */
+.sound-wave-container:hover .sound-bar {
+    background: linear-gradient(to bottom, #818cf8, #c084fc);
+    animation-duration: 1.4s;
+    opacity: 1;
+}
+
+/* Add these styles to your existing styles section */
+.dropdown-item {
+    @apply flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors;
+}
+
+.dropdown-menu {
+    @apply absolute mt-2 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden;
+}
+
+.nav-caret {
+    @apply w-4 h-4 stroke-current;
+}
+
+/* Animation classes */
+.dropdown-enter {
+    @apply transition-all duration-200 ease-out;
+}
+
+.dropdown-enter-start {
+    @apply opacity-0 translate-y-2;
+}
+
+.dropdown-enter-end {
+    @apply opacity-100 translate-y-0;
+}
+
+.dropdown-leave {
+    @apply transition-all duration-150 ease-in;
+}
+
+.dropdown-leave-start {
+    @apply opacity-100 translate-y-0;
+}
+
+.dropdown-leave-end {
+    @apply opacity-0 translate-y-2;
+}
+</style>

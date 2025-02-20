@@ -2,13 +2,13 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('audioPlayer', () => ({
         currentTrack: null,
         isPlaying: false,
-        volume: 75,
+        volume: 100,
         isMuted: false,
         previousVolume: 75,
         isFavorite: false,
         isInCart: false,
         isShuffled: false,
-        repeatMode: 'off', // 'off', 'all', 'one'
+        loopMode: 'off', // 'off', 'all', 'one'
         wavesurfer: null,
         howl: null,
         queue: [],
@@ -70,7 +70,7 @@ document.addEventListener('alpine:init', () => {
                 } else if (e.code === 'KeyM' && this.currentTrack) {
                     this.toggleMute();
                 } else if (e.code === 'KeyR') {
-                    this.toggleRepeat();
+                    this.toggleLoop();
                 } else if (e.code === 'KeyS') {
                     this.toggleShuffle();
                 } else if (e.code === 'KeyF') {
@@ -137,9 +137,9 @@ document.addEventListener('alpine:init', () => {
                 },
                 onend: () => {
                     this.isPlaying = false;
-                    if (this.repeatMode === 'one') {
+                    if (this.loopMode === 'one') {
                         this.howl.play();
-                    } else if (this.repeatMode === 'all' && !this.hasNextTrack) {
+                    } else if (this.loopMode === 'all' && !this.hasNextTrack) {
                         this.currentIndex = -1;
                         this.nextTrack();
                     } else {
@@ -260,17 +260,11 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        toggleRepeat() {
-            switch (this.repeatMode) {
-                case 'off':
-                    this.repeatMode = 'all';
-                    break;
-                case 'all':
-                    this.repeatMode = 'one';
-                    break;
-                case 'one':
-                    this.repeatMode = 'off';
-                    break;
+        toggleLoop() {
+            switch (this.loopMode) {
+                case 'off': this.loopMode = 'all'; break;
+                case 'all': this.loopMode = 'one'; break;
+                case 'one': this.loopMode = 'off'; break;
             }
         },
 
@@ -334,7 +328,7 @@ document.addEventListener('alpine:init', () => {
 
         nextTrack() {
             if (!this.hasNextTrack) {
-                if (this.repeatMode === 'all') {
+                if (this.loopMode === 'all') {
                     this.currentIndex = -1;
                     this.nextTrack();
                 }
@@ -371,7 +365,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         get hasNextTrack() {
-            return this.currentIndex < this.queue.length - 1 || this.repeatMode === 'all';
+            return this.currentIndex < this.queue.length - 1 || this.loopMode === 'all';
         },
 
         get hasPreviousTrack() {

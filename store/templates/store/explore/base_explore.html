@@ -1,0 +1,56 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-8 py-12">
+    <!-- Page Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-white mb-4">{{ page_title }}</h1>
+        <p class="text-xl text-gray-400">{{ page_description }}</p>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="beat-card rounded-2xl p-6 mb-12">
+        <div class="flex flex-wrap gap-6">
+            <!-- Sort Dropdown -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" 
+                        class="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                    <span class="text-gray-300">Sort by</span>
+                    <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div x-show="open" 
+                     @click.away="open = false"
+                     class="absolute left-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/5">
+                    <div class="py-2">
+                        <a href="?sort=newest" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Newest</a>
+                        <a href="?sort=popular" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Most Popular</a>
+                        <a href="?sort=price_low" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Price: Low to High</a>
+                        <a href="?sort=price_high" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Price: High to Low</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Range Filter -->
+            <div class="flex items-center gap-3">
+                <input type="number" placeholder="Min Price" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <span class="text-gray-400">to</span>
+                <input type="number" placeholder="Max Price" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <!-- BPM Range Filter -->
+            <div class="flex items-center gap-3">
+                <input type="number" placeholder="Min BPM" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <span class="text-gray-400">to</span>
+                <input type="number" placeholder="Max BPM" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="space-y-12">
+        {% block explore_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %} 

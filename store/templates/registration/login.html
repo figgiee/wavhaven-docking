@@ -1,0 +1,151 @@
+{% extends "store/base.html" %}
+
+{% block content %}
+<!-- Hide audio player on auth pages -->
+<script>
+window.addEventListener('load', function() {
+    // Find and pause the audio element in the persistent player
+    const persistentPlayer = document.querySelector('.persistent-player');
+    if (persistentPlayer) {
+        // Hide the player
+        persistentPlayer.style.display = 'none';
+        
+        // Find and pause the audio
+        const audio = persistentPlayer.querySelector('audio');
+        if (audio) {
+            audio.pause();
+        }
+        
+        // Dispatch event to notify the player component
+        window.dispatchEvent(new CustomEvent('pause-persistent-player'));
+    }
+    
+    // Also pause any other audio elements on the page
+    document.querySelectorAll('audio').forEach(audio => {
+        audio.pause();
+    });
+});
+</script>
+
+<div class="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold tracking-tight text-white">
+                Sign in to your account
+            </h2>
+            <p class="mt-2 text-sm text-gray-400">
+                Welcome back to WavHaven
+            </p>
+        </div>
+
+        <!-- Form -->
+        <div class="beat-card rounded-2xl p-8">
+            <form class="space-y-6" method="POST" novalidate>
+                {% csrf_token %}
+                
+                <!-- Username Field -->
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-300">
+                        Username
+                    </label>
+                    <div class="mt-1">
+                        <input type="text" 
+                               id="{{ form.username.id_for_label }}" 
+                               name="{{ form.username.name }}" 
+                               autocomplete="username"
+                               required
+                               class="block w-full px-4 py-3 text-white bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors placeholder-gray-500"
+                               placeholder="Enter your username">
+                        {% if form.username.errors %}
+                        <p class="mt-2 text-sm text-red-500" role="alert">
+                            {{ form.username.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-300">
+                        Password
+                    </label>
+                    <div class="mt-1">
+                        <input type="password" 
+                               id="{{ form.password.id_for_label }}" 
+                               name="{{ form.password.name }}" 
+                               autocomplete="current-password"
+                               required
+                               class="block w-full px-4 py-3 text-white bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors placeholder-gray-500"
+                               placeholder="Enter your password">
+                        {% if form.password.errors %}
+                        <p class="mt-2 text-sm text-red-500" role="alert">
+                            {{ form.password.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-500/10 p-4">
+                    <div class="flex">
+                        <div class="ml-3">
+                            <p class="text-sm text-red-500" role="alert">
+                                {{ form.non_field_errors.0 }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div>
+                    <button type="submit" 
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                        Sign in
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer Links -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-400">
+                Don't have an account?
+                <a href="{% url 'register' %}" class="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                    Create one
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Prevent any audio from playing when navigating to this page
+document.addEventListener('DOMContentLoaded', function() {
+    // Stop any playing audio and hide player
+    const stopAudio = () => {
+        const persistentPlayer = document.querySelector('.persistent-player');
+        if (persistentPlayer) {
+            persistentPlayer.style.display = 'none';
+            const audio = persistentPlayer.querySelector('audio');
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        }
+    };
+
+    // Call immediately
+    stopAudio();
+    
+    // Also call when the page becomes visible again
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            stopAudio();
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %} 

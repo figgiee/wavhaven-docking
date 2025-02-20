@@ -1,0 +1,556 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Remove the Header Vignette Overlay -->
+<!-- <div class="fixed top-0 left-0 right-0 z-50 h-32 pointer-events-none">
+    <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-transparent"></div>
+</div> -->
+
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center justify-center">
+    <!-- Hero Content -->
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center -mt-24">
+        <h1 class="text-6xl md:text-8xl font-bold mb-6 text-white leading-tight">
+            Find Your Perfect Sound
+        </h1>
+        
+        <h2 class="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+            High-quality beats, loops, soundkits, and presets from top producers worldwide
+        </h2>
+
+        <!-- Search Bar -->
+        <div class="max-w-2xl mx-auto mb-12">
+            <form action="{% url 'store:search' %}" method="GET" class="relative">
+                <input type="text" 
+                       name="q" 
+                       id="searchInput"
+                       placeholder="Search" 
+                       class="w-full px-8 py-5 text-lg text-white bg-white/5 backdrop-blur-xl border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400 shadow-xl">
+                <span id="typingText" class="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center">
+                    <span class="typing-text"></span><span class="typing-cursor">|</span>
+                </span>
+                <button type="submit" class="absolute right-6 top-1/2 -translate-y-1/2">
+                    <i class="fas fa-search text-gray-400 text-xl"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- CTA Button -->
+        <a href="{% url 'store:explore_beats' %}" 
+           class="inline-flex items-center px-12 py-4 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 transform hover:scale-105">
+            Explore Now
+        </a>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <i class="fas fa-chevron-down text-white/50"></i>
+    </div>
+</section>
+
+<!-- Featured Beats Section -->
+<section class="py-32 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-12">
+            <h2 class="text-4xl font-bold text-white">Featured Beats</h2>
+            <a href="{% url 'store:explore_beats' %}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
+                View All →
+            </a>
+        </div>
+
+        <!-- Option A: Carousel Layout -->
+        <div class="relative" x-data="{ activeSlide: 0 }">
+            <div class="overflow-hidden">
+                <div class="flex transition-transform duration-300" :style="{ transform: `translateX(-${activeSlide * 100}%)` }">
+                    {% for beat in featured_beats %}
+                    <div class="w-full md:w-1/2 lg:w-1/3 flex-shrink-0 px-3">
+                        <div class="beat-card rounded-xl overflow-hidden"
+                             x-data="{ 
+                                isPlaying: false,
+                                track: {
+                                    id: {{ beat.id }},
+                                    title: '{{ beat.title|escapejs }}',
+                                    producer: '{{ beat.producer.username|escapejs }}',
+                                    audioUrl: '{{ beat.audio_file.url|escapejs }}',
+                                    coverImage: '{{ beat.get_cover_image_url|escapejs }}'
+                                }
+                             }"
+                             @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)"
+                             data-beat-id="{{ beat.id }}"
+                             class="cursor-pointer group">
+                            {% csrf_token %}
+                            
+                            <!-- Beat Image and Play Button -->
+                            <div class="aspect-square relative overflow-hidden">
+                                <div class="image-container w-full h-full transition-transform duration-300 group-hover:scale-105">
+                                    <img src="{{ beat.get_cover_image_url }}" 
+                                         alt="{{ beat.title }}" 
+                                         class="w-full h-full object-cover">
+                                </div>
+                                
+                                <!-- Play Button Overlay -->
+                                {% if beat.audio_file %}
+                                <button @click.stop="$dispatch('play-track', track)"
+                                        class="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all duration-300">
+                                    <div class="play-button w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center transform transition-all duration-300"
+                                         :class="{ 'scale-95 bg-indigo-500/20': isPlaying, 'hover:scale-110': !isPlaying }">
+                                        <i class="fas text-xl text-white transition-all duration-300"
+                                           :class="{ 
+                                               'fa-pause scale-95': isPlaying, 
+                                               'fa-play ml-1 scale-100': !isPlaying 
+                                           }"></i>
+                                    </div>
+                                </button>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Beat Information -->
+                            <div class="p-4">
+                                <div class="flex items-start justify-between gap-4 mb-2">
+                                    <div class="flex-1 min-w-0">
+                                        <a href="{% url 'store:beat_detail' beat.id %}" class="block group">
+                                            <h3 class="text-base font-medium text-white leading-tight truncate transition-colors duration-300 hover:text-indigo-400"
+                                                :class="{ 'text-indigo-400': isPlaying }">
+                                                {{ beat.title }}
+                                            </h3>
+                                            <p class="text-sm text-gray-400 truncate hover:text-gray-300 transition-colors duration-300">{{ beat.producer.username }}</p>
+                                        </a>
+                                    </div>
+                                    <button @click.stop="$store.cart.addToCart({{ beat.id }})" 
+                                            class="flex-shrink-0 w-8 h-8 rounded-full bg-white/5 hover:bg-indigo-500/20 flex items-center justify-center transition-all duration-200 hover:scale-110">
+                                        <i class="fas fa-plus text-xs text-white/70 hover:text-white"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="font-medium text-indigo-400">${{ beat.price }}</span>
+                                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                                        {% if beat.bpm %}<span>{{ beat.bpm }} BPM</span>{% endif %}
+                                        {% if beat.bpm and beat.key %}<span>•</span>{% endif %}
+                                        {% if beat.key %}<span>{{ beat.key }}</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Carousel Navigation -->
+            <button @click="activeSlide = Math.max(activeSlide - 1, 0)" 
+                    class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-sm flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-chevron-left text-white"></i>
+            </button>
+            <button @click="activeSlide = Math.min(activeSlide + 1, {{ featured_beats|length|add:'-1' }})" 
+                    class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-sm flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-chevron-right text-white"></i>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Producers Section -->
+<section class="py-32 relative bg-white/5 rounded-3xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-12">
+            <h2 class="text-4xl font-bold text-white">Featured Producers</h2>
+            <a href="{% url 'store:producers' %}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
+                View All →
+            </a>
+        </div>
+
+        <!-- Option B: Grid Layout -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for producer in featured_producers %}
+            <a href="{% if producer.username %}{% url 'store:profile' producer.username %}{% else %}#{% endif %}" class="group">
+                <div class="glass-effect p-8 rounded-2xl bg-white/5 group-hover:bg-white/10 transition-all duration-300 transform group-hover:scale-[1.02]">
+                    <!-- Producer Avatar -->
+                    <div class="w-24 h-24 rounded-full mx-auto mb-6 overflow-hidden ring-2 ring-white/10 group-hover:ring-indigo-500/50 transition-all duration-300">
+                        {% if producer.userprofile.get_avatar_url %}
+                        <img src="{{ producer.userprofile.get_avatar_url }}" 
+                             alt="{{ producer.username }}" 
+                             class="w-full h-full object-cover">
+                        {% else %}
+                        <!-- Placeholder: Producer avatar -->
+                        <div class="w-full h-full bg-gradient-to-br from-indigo-600/30 to-purple-600/30">
+                            <!-- Note: Replace with actual avatars -->
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <h3 class="text-xl font-medium text-white text-center mb-3 group-hover:text-indigo-400 transition-colors">{{ producer.username }}</h3>
+                    <p class="text-sm text-gray-400 text-center mb-6">{{ producer.bio|default:producer.userprofile.bio|default:"" }}</p>
+                    
+                    <!-- Producer Stats -->
+                    <div class="flex items-center justify-center gap-6 text-sm">
+                        <div class="text-center">
+                            <p class="text-indigo-400 font-medium">{{ producer.beats_count }}</p>
+                            <p class="text-gray-500">Beats</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-indigo-400 font-medium">{{ producer.sales_count|default:"0" }}</p>
+                            <p class="text-gray-500">Sales</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-indigo-400 font-medium">{{ producer.followers_count|default:"0" }}</p>
+                            <p class="text-gray-500">Followers</p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Why Choose WavHaven Section -->
+<section class="py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-4xl font-bold text-white text-center mb-16">Why Choose WavHaven?</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            <!-- Feature 1: Curated Selection -->
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-full bg-indigo-600/20 flex items-center justify-center mx-auto mb-6">
+                    <!-- Note: Replace with custom icon showing a checkmark with stars -->
+                    <i class="fas fa-award text-2xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-medium text-white mb-4">Curated Excellence</h3>
+                <p class="text-gray-400">Hand-picked selection of premium sounds from award-winning producers and rising stars.</p>
+            </div>
+
+            <!-- Feature 2: Exclusive Content -->
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-full bg-indigo-600/20 flex items-center justify-center mx-auto mb-6">
+                    <!-- Note: Replace with custom icon showing a diamond or star -->
+                    <i class="fas fa-gem text-2xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-medium text-white mb-4">Exclusive Releases</h3>
+                <p class="text-gray-400">Access sound packs and presets you won't find anywhere else, created by industry leaders.</p>
+            </div>
+
+            <!-- Feature 3: Community -->
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-full bg-indigo-600/20 flex items-center justify-center mx-auto mb-6">
+                    <!-- Note: Replace with custom icon showing connected people -->
+                    <i class="fas fa-users text-2xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-medium text-white mb-4">Vibrant Community</h3>
+                <p class="text-gray-400">Join a thriving network of producers, share feedback, and collaborate on projects.</p>
+            </div>
+
+            <!-- Feature 4: Genre Expertise -->
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-full bg-indigo-600/20 flex items-center justify-center mx-auto mb-6">
+                    <!-- Note: Replace with custom icon showing musical notes -->
+                    <i class="fas fa-music text-2xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-medium text-white mb-4">Genre Mastery</h3>
+                <p class="text-gray-400">Specialized in hip-hop, trap, and R&B sounds, with deep expertise in modern production.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA Section -->
+<section class="relative py-32 overflow-hidden w-full">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6 text-shadow-lg">Ready to Get Started?</h2>
+        <p class="text-xl text-gray-200 mb-8 text-shadow">Join thousands of producers and artists on WavHaven</p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'store:explore_beats' %}" 
+               class="inline-flex items-center px-8 py-4 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 backdrop-blur-sm">
+                Start Exploring
+            </a>
+            <a href="{% url 'store:register' %}" 
+               class="inline-flex items-center px-8 py-4 text-lg font-medium text-white bg-white/10 rounded-full hover:bg-white/20 transition-all duration-200 backdrop-blur-sm">
+                Create Account
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Add typing animation styles and script -->
+<style>
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.typing-cursor {
+    animation: blink 1s step-end infinite;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const words = ['beats', 'loops', 'soundkits', 'presets'];
+    const typingText = document.querySelector('.typing-text');
+    const searchInput = document.getElementById('searchInput');
+    let wordIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    let typingDelay = 100;
+    let deletingDelay = 50;
+    let newWordDelay = 2000;
+
+    function type() {
+        const currentWord = words[wordIndex];
+        
+        if (isDeleting) {
+            typingText.textContent = currentWord.substring(0, charIndex - 1);
+            charIndex--;
+            typingDelay = deletingDelay;
+        } else {
+            typingText.textContent = currentWord.substring(0, charIndex + 1);
+            charIndex++;
+            typingDelay = 100;
+        }
+
+        if (!isDeleting && charIndex === currentWord.length) {
+            isDeleting = true;
+            typingDelay = newWordDelay;
+        } else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            wordIndex = (wordIndex + 1) % words.length;
+            typingDelay = 500;
+        }
+
+        setTimeout(type, typingDelay);
+    }
+
+    // Hide placeholder and start typing animation
+    searchInput.placeholder = '';
+    type();
+
+    // Hide typing animation when input is focused
+    searchInput.addEventListener('focus', function() {
+        document.getElementById('typingText').style.display = 'none';
+    });
+
+    // Show typing animation when input is blurred and empty
+    searchInput.addEventListener('blur', function() {
+        if (!this.value) {
+            document.getElementById('typingText').style.display = 'flex';
+        }
+    });
+});
+
+// Hide persistent player initially
+document.addEventListener('DOMContentLoaded', function() {
+    const persistentPlayer = document.querySelector('.persistent-player');
+    if (persistentPlayer) {
+        persistentPlayer.style.display = 'none';
+    }
+});
+
+// Show player only when music is played
+document.addEventListener('play-track', function() {
+    const persistentPlayer = document.querySelector('.persistent-player');
+    if (persistentPlayer) {
+        persistentPlayer.style.display = 'flex';
+    }
+});
+</script>
+
+<!-- Add wave animation styles -->
+<style>
+@keyframes wave {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+.animate-wave {
+    animation: wave 20s linear infinite;
+}
+
+/* Custom font variables */
+:root {
+    --font-primary: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Note: Consider using a more modern, tech-focused font like:
+       - Space Grotesk
+       - Manrope
+       - SF Pro Display
+    */
+}
+
+/* Apply custom font */
+.custom-font {
+    font-family: var(--font-primary);
+}
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 10px;
+    background: transparent;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox scrollbar styles */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) rgba(255, 255, 255, 0.05);
+}
+
+/* Adjust main content padding when player is hidden */
+.main-content {
+    min-height: 100vh;
+    padding-bottom: 0;
+    transition: padding-bottom 0.3s ease;
+}
+
+.main-content.player-visible {
+    padding-bottom: 100px; /* Adjust based on your player height */
+}
+</style>
+
+<!-- Add new styles for enhanced animations -->
+<style>
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.4; }
+}
+
+.pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+}
+
+/* Optimize transitions for GPU acceleration */
+.transform {
+    will-change: transform;
+}
+
+.opacity-transition {
+    will-change: opacity;
+}
+</style>
+
+<!-- Footer -->
+<footer class="relative mt-32">
+    <!-- Background with subtle gradient and blur -->
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-xl">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <!-- Main Footer Content -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 opacity-90">
+            <!-- Column 1: WAVHaven -->
+            <div>
+                <div class="mb-6">
+                    <h3 class="text-xl font-medium text-white/80">WAVHaven</h3>
+                </div>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'store:explore_beats' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Explore</a></li>
+                    <li><a href="{% url 'store:genres' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Genres</a></li>
+                    <li><a href="/about" class="text-white/50 hover:text-white/90 transition-colors text-sm">About Us</a></li>
+                    <li><a href="/blog" class="text-white/50 hover:text-white/90 transition-colors text-sm">Blog</a></li>
+                </ul>
+            </div>
+
+            <!-- Column 2: For Producers -->
+            <div>
+                <h4 class="text-sm font-medium text-white/70 mb-6 uppercase tracking-wider">For Producers</h4>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'store:beat_upload' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Start Selling</a></li>
+                    <li><a href="/producer-faq" class="text-white/50 hover:text-white/90 transition-colors text-sm">Producer FAQ</a></li>
+                    <li><a href="/submission-guidelines" class="text-white/50 hover:text-white/90 transition-colors text-sm">Submission Guidelines</a></li>
+                    <li><a href="/producer-resources" class="text-white/50 hover:text-white/90 transition-colors text-sm">Producer Resources</a></li>
+                </ul>
+            </div>
+
+            <!-- Column 3: For Customers -->
+            <div>
+                <h4 class="text-sm font-medium text-white/70 mb-6 uppercase tracking-wider">For Customers</h4>
+                <ul class="space-y-2">
+                    <li><a href="/faq" class="text-white/50 hover:text-white/90 transition-colors text-sm">Customer FAQ</a></li>
+                    <li><a href="/licensing" class="text-white/50 hover:text-white/90 transition-colors text-sm">Licensing Information</a></li>
+                    <li><a href="/support" class="text-white/50 hover:text-white/90 transition-colors text-sm">Contact Support</a></li>
+                    <li><a href="/returns" class="text-white/50 hover:text-white/90 transition-colors text-sm">Returns & Refunds</a></li>
+                </ul>
+            </div>
+
+            <!-- Column 4: Social & Newsletter -->
+            <div>
+                <h4 class="text-sm font-medium text-white/70 mb-6 uppercase tracking-wider">Stay Connected</h4>
+                <!-- Social Media Links -->
+                <ul class="flex space-x-4 mb-6">
+                    <li>
+                        <a href="https://twitter.com/wavhaven" aria-label="Twitter" 
+                           class="text-white/50 hover:text-white/90 transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://instagram.com/wavhaven" aria-label="Instagram"
+                           class="text-white/50 hover:text-white/90 transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://facebook.com/wavhaven" aria-label="Facebook"
+                           class="text-white/50 hover:text-white/90 transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://soundcloud.com/wavhaven" aria-label="SoundCloud"
+                           class="text-white/50 hover:text-white/90 transition-colors">
+                            <i class="fab fa-soundcloud"></i>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Newsletter -->
+                <div class="newsletter">
+                    <p class="text-white/50 text-sm mb-4">Subscribe for updates and exclusive offers.</p>
+                    <form class="flex flex-col space-y-3" action="/subscribe" method="POST">
+                        {% csrf_token %}
+                        <label for="newsletter-email" class="sr-only">Email address</label>
+                        <div class="flex">
+                            <input type="email" 
+                                   id="newsletter-email"
+                                   name="email" 
+                                   placeholder="Enter your email"
+                                   class="flex-1 bg-white/5 text-white/90 placeholder-white/30 px-3 py-1.5 text-sm rounded-l border border-white/10 focus:outline-none focus:border-indigo-500/50">
+                            <button type="submit" 
+                                    class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/90 text-sm rounded-r border border-l-0 border-white/10 transition-colors">
+                                Subscribe
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright & Legal -->
+        <div class="mt-16 pt-8 border-t border-white/5">
+            <div class="text-center">
+                <p class="text-white/40 text-xs mb-4">&copy; {% now "Y" %} WAVHaven. All rights reserved.</p>
+                <ul class="flex flex-wrap justify-center gap-6 text-xs">
+                    <li><a href="/terms" class="text-white/40 hover:text-white/60 transition-colors">Terms of Service</a></li>
+                    <li><a href="/privacy" class="text-white/40 hover:text-white/60 transition-colors">Privacy Policy</a></li>
+                    <li><a href="/cookie" class="text-white/40 hover:text-white/60 transition-colors">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %} 

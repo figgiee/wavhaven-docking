@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # WavHaven - Beat Marketplace Platform
 
 WavHaven is a modern beat marketplace platform where producers can showcase and sell their beats, and customers can discover and purchase them. The platform features a state-of-the-art audio player with persistent playback across page navigation.
@@ -148,29 +147,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - TailwindCSS for styling
 - Alpine.js for reactivity
 - Django community for the amazing framework
-=======
-# WavHaven BACKEND
-
-## Venv
-The venv includes only django for now, i decided not to use restapi yet
-
-## Tech stack
-- HTML/CSS
-- JavaScript
-- Alpine.js
-- Tailwind CSS
-- Python
-- Django
-- REST Framework
-- SQLite
-
-## Functionality
-- Create accounts
-- Log in
-- Upload beats
-- Manage beats
-- Buy/View beats
-- Search for keywords
-- View sales, beat views, analytics, etc
-- Admin portal
->>>>>>> 43e6d2dca8d245f001e712240bfadecec0527f1e

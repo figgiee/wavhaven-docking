@@ -4,31 +4,38 @@
 <style>
     /* Custom audio player styling */
     audio {
-        filter: invert(100%) hue-rotate(180deg) !important;
-        opacity: 0.8;
-        border-radius: 8px;
+        display: none; /* Hide the default audio player */
+    }
+
+    /* Hide persistent player on upload page */
+    #persistent-player {
+        display: none !important;
+    }
+
+    /* Waveform visualization styling */
+    #preview-waveform {
         width: 100%;
-        height: 32px;
+        height: 64px;
+        background: rgba(30, 41, 59, 0.3);
+        border-radius: 8px;
+        overflow: hidden;
     }
 
-    audio::-webkit-media-controls-panel {
-        background-color: rgba(30, 41, 59, 0.7);
+    #preview-waveform wave {
+        height: 64px !important;
     }
 
-    audio::-webkit-media-controls-current-time-display,
-    audio::-webkit-media-controls-time-remaining-display {
-        color: #94A3B8;
+    /* Animated bars */
+    #preview-waveform wave canvas {
+        transition: transform 0.2s ease;
     }
-
-    audio::-webkit-media-controls-timeline {
-        background-color: #1E293B;
-        border-radius: 4px;
-        margin: 0 10px;
+    #preview-waveform wave.playing canvas {
+        animation: pulse 1s ease-in-out infinite;
     }
-
-    audio::-webkit-media-controls-play-button,
-    audio::-webkit-media-controls-mute-button {
-        filter: grayscale(1) brightness(1.5);
+    @keyframes pulse {
+        0% { transform: scaleY(1); }
+        50% { transform: scaleY(1.1); }
+        100% { transform: scaleY(1); }
     }
 </style>
 
@@ -36,7 +43,39 @@
     <div class="glass-effect rounded-xl p-8" style="backdrop-filter: blur(2px);">
         <h2 class="text-3xl font-bold mb-6 gradient-text">Upload Beat</h2>
         
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" x-data="{ 
+            submitting: false,
+            validateForm() {
+                const title = document.getElementById('id_title').value;
+                const price = document.getElementById('id_price').value;
+                const genre = document.getElementById('id_genre').value;
+                const audioFile = document.getElementById('id_audio_file').files[0];
+                
+                if (!title) {
+                    alert('Please enter a title');
+                    return false;
+                }
+                if (!price || price <= 0) {
+                    alert('Please enter a valid price');
+                    return false;
+                }
+                if (!genre) {
+                    alert('Please select a genre');
+                    return false;
+                }
+                if (!audioFile) {
+                    alert('Please upload an audio file');
+                    return false;
+                }
+                
+                return true;
+            }
+        }" @submit.prevent="
+            if (validateForm()) {
+                submitting = true;
+                $el.submit();
+            }
+        ">
             {% csrf_token %}
             
             <!-- Two Column Layout -->
@@ -118,38 +157,171 @@
                 <!-- Right Column - Files -->
                 <div class="space-y-6">
                     <!-- Audio File -->
-                    <div x-data="{ fileName: '', audioPreview: null }">
+                    <div x-data="{ 
+                        fileName: '', 
+                        audioPreview: null,
+                        previewWavesurfer: null,
+                        isPlaying: false,
+                        currentTime: 0,
+                        duration: 0,
+                        
+                        init() {
+                            this.previewWavesurfer = WaveSurfer.create({
+                                container: '#preview-waveform',
+                                height: 64,
+                                waveColor: 'rgba(255, 255, 255, 0.2)',
+                                progressColor: 'rgba(99, 102, 241, 0.8)',
+                                cursorColor: 'rgba(255, 255, 255, 0.5)',
+                                barWidth: 2,
+                                barGap: 1,
+                                barRadius: 3,
+                                responsive: true,
+                                normalize: true,
+                                interact: true,
+                                hideScrollbar: true
+                            });
+                            
+                            this.previewWavesurfer.on('ready', () => {
+                                this.duration = this.previewWavesurfer.getDuration();
+                            });
+                            
+                            this.previewWavesurfer.on('audioprocess', (time) => {
+                                this.currentTime = time;
+                            });
+                            
+                            this.previewWavesurfer.on('finish', () => {
+                                this.isPlaying = false;
+                            });
+                        },
+                        
+                        togglePlay(event) {
+                            // Stop event propagation to prevent file dialog from opening
+                            event.stopPropagation();
+                            
+                            if (this.isPlaying) {
+                                this.previewWavesurfer.pause();
+                            } else {
+                                // Pause the persistent player if it's playing
+                                if (window.audioPlayer) {
+                                    window.audioPlayer.pause();
+                                }
+                                this.previewWavesurfer.play();
+                            }
+                            this.isPlaying = !this.isPlaying;
+                        },
+                        
+                        formatTime(seconds) {
+                            if (!seconds) return '0:00';
+                            const minutes = Math.floor(seconds / 60);
+                            const remainingSeconds = Math.floor(seconds % 60);
+                            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                        }
+                    }">
                         <label for="id_audio_file" class="block text-sm font-medium text-gray-300 mb-2">Audio File</label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-200"
-                             :class="{ 'border-blue-500 bg-blue-500 bg-opacity-5': fileName }">
-                            <div class="space-y-1 text-center w-full">
+                        <div class="mt-1 border-2 border-gray-700 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-200"
+                             :class="{ 'border-blue-500 bg-blue-500 bg-opacity-5': fileName, 'cursor-pointer': !fileName }"
+                             @click="if (!fileName) document.getElementById('id_audio_file').click()"
+                             @dragover.prevent="$el.classList.add('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
+                             @dragleave.prevent="$el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
+                             @drop.prevent="
+                                $el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
+                                const file = $event.dataTransfer.files[0];
+                                if (!file) return;
+                                if (!file.type.startsWith('audio/')) {
+                                    alert('Please upload an audio file');
+                                    return;
+                                }
+                                if (file.size > 10 * 1024 * 1024) {
+                                    alert('File size must be less than 10MB');
+                                    return;
+                                }
+                                const input = document.getElementById('id_audio_file');
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.items.add(file);
+                                input.files = dataTransfer.files;
+                                fileName = file.name;
+                                audioPreview = URL.createObjectURL(file);
+                                previewWavesurfer.load(audioPreview);
+                             ">
+                            <div class="flex flex-col items-center justify-center px-6 pt-5 pb-6 space-y-1 text-center w-full">
                                 <i class="fas fa-music text-4xl" :class="fileName ? 'text-blue-400' : 'text-gray-400'"></i>
                                 <div class="flex text-sm text-gray-400 justify-center">
-                                    <label for="id_audio_file" class="relative cursor-pointer rounded-md font-medium text-blue-400 hover:text-blue-300 focus-within:outline-none">
-                                        <span x-text="fileName ? 'Change file' : 'Upload a file'"></span>
-                                        <input id="id_audio_file" name="audio_file" type="file" class="sr-only" accept="audio/*" required
-                                               @change="fileName = $event.target.files[0].name; audioPreview = URL.createObjectURL($event.target.files[0]);">
-                                    </label>
-                                    <p class="pl-1" x-show="!fileName">or drag and drop</p>
+                                    <template x-if="!fileName">
+                                        <div>
+                                            <span class="text-blue-400 hover:text-blue-300">Upload a file</span>
+                                            <span class="pl-1">or drag and drop</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="fileName">
+                                        <div class="text-blue-400" x-text="fileName"></div>
+                                    </template>
                                 </div>
                                 <p class="text-xs text-gray-500" x-show="!fileName">MP3, WAV up to 10MB</p>
                                 
-                                <div x-show="fileName" class="mt-2">
-                                    <p class="text-sm text-blue-400" x-text="fileName"></p>
-                                    <div x-show="audioPreview" class="mt-3 bg-[#1E293B] bg-opacity-50 rounded-lg p-2">
-                                        <audio :src="audioPreview" controls class="w-full"></audio>
+                                <div x-show="fileName" class="mt-2 w-full">
+                                    <div x-show="audioPreview" class="mt-3 bg-[#1E293B] bg-opacity-50 rounded-lg p-4">
+                                        <!-- Audio preview with waveform -->
+                                        <div class="space-y-4">
+                                            <div class="flex items-center gap-4">
+                                                <button @click="togglePlay($event)" 
+                                                        type="button"
+                                                        class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-500 hover:bg-indigo-600 transition-colors">
+                                                    <i class="fas" :class="isPlaying ? 'fa-pause' : 'fa-play'"></i>
+                                                </button>
+                                                
+                                                <div class="flex-1 space-y-2">
+                                                    <div class="flex justify-between text-xs text-gray-400">
+                                                        <span x-text="formatTime(currentTime)">0:00</span>
+                                                        <span x-text="formatTime(duration)">0:00</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div id="preview-waveform"></div>
+                                        </div>
+                                        <audio :src="audioPreview" class="hidden"></audio>
                                     </div>
                                 </div>
                             </div>
+                            <input id="id_audio_file" name="audio_file" type="file" class="hidden" accept="audio/*" required
+                                   @change="
+                                    const file = $event.target.files[0];
+                                    if (!file) return;
+                                    fileName = file.name;
+                                    audioPreview = URL.createObjectURL(file);
+                                    previewWavesurfer.load(audioPreview);
+                                   ">
                         </div>
                     </div>
 
                     <!-- Cover Image -->
                     <div x-data="{ fileName: '', imagePreview: null }">
                         <label for="id_cover_image" class="block text-sm font-medium text-gray-300 mb-2">Cover Image</label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-200"
-                             :class="{ 'border-blue-500 bg-blue-500 bg-opacity-5': fileName }">
-                            <div class="space-y-1 text-center">
+                        <div class="mt-1 border-2 border-gray-700 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-200 cursor-pointer"
+                             :class="{ 'border-blue-500 bg-blue-500 bg-opacity-5': fileName }"
+                             @click="document.getElementById('id_cover_image').click()"
+                             @dragover.prevent="$el.classList.add('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
+                             @dragleave.prevent="$el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
+                             @drop.prevent="
+                                $el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
+                                const file = $event.dataTransfer.files[0];
+                                if (!file) return;
+                                if (!file.type.startsWith('image/')) {
+                                    alert('Please upload an image file');
+                                    return;
+                                }
+                                if (file.size > 2 * 1024 * 1024) {
+                                    alert('File size must be less than 2MB');
+                                    return;
+                                }
+                                const input = document.getElementById('id_cover_image');
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.items.add(file);
+                                input.files = dataTransfer.files;
+                                fileName = file.name;
+                                imagePreview = URL.createObjectURL(file);
+                             ">
+                            <div class="flex flex-col items-center justify-center px-6 pt-5 pb-6 space-y-1 text-center w-full">
                                 <template x-if="!imagePreview">
                                     <i class="fas fa-image text-4xl" :class="fileName ? 'text-blue-400' : 'text-gray-400'"></i>
                                 </template>
@@ -157,16 +329,21 @@
                                     <img :src="imagePreview" class="mx-auto h-32 w-32 object-cover rounded-lg">
                                 </template>
                                 <div class="flex text-sm text-gray-400 justify-center">
-                                    <label for="id_cover_image" class="relative cursor-pointer rounded-md font-medium text-blue-400 hover:text-blue-300 focus-within:outline-none">
+                                    <span class="text-blue-400 hover:text-blue-300">
                                         <span x-text="fileName ? 'Change image' : 'Upload cover'"></span>
-                                        <input id="id_cover_image" name="cover_image" type="file" class="sr-only" accept="image/*"
-                                               @change="fileName = $event.target.files[0].name; imagePreview = URL.createObjectURL($event.target.files[0]);">
-                                    </label>
+                                    </span>
                                     <p class="pl-1" x-show="!fileName">or drag and drop</p>
                                 </div>
                                 <p class="text-xs text-gray-500" x-show="!fileName">PNG, JPG up to 2MB</p>
                                 <p x-show="fileName" class="text-sm text-blue-400 mt-2" x-text="fileName"></p>
                             </div>
+                            <input id="id_cover_image" name="cover_image" type="file" class="hidden" accept="image/*"
+                                   @change="
+                                    const file = $event.target.files[0];
+                                    if (!file) return;
+                                    fileName = file.name;
+                                    imagePreview = URL.createObjectURL(file);
+                                   ">
                         </div>
                     </div>
                 </div>
@@ -175,8 +352,13 @@
             <!-- Submit Button -->
             <div class="mt-8">
                 <button type="submit" 
-                        class="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105">
-                    Upload Beat
+                        :disabled="submitting"
+                        class="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!submitting">Upload Beat</span>
+                    <span x-show="submitting" class="flex items-center justify-center">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Uploading...
+                    </span>
                 </button>
             </div>
         </form>
@@ -208,5 +390,92 @@
             }
         }
     }
+
+    // Initialize drag and drop functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const audioDropzone = document.querySelector('#id_audio_file').closest('div');
+        const imageDropzone = document.querySelector('#id_cover_image').closest('div');
+
+        // Add animation class when playing
+        const waveformContainer = document.querySelector('#preview-waveform wave');
+        if (waveformContainer) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.target.classList.contains('playing')) {
+                        waveformContainer.classList.add('playing');
+                    } else {
+                        waveformContainer.classList.remove('playing');
+                    }
+                });
+            });
+
+            observer.observe(waveformContainer, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!this.contains(e.relatedTarget)) {
+                this.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const fileInput = this.querySelector('input[type="file"]');
+                const file = files[0];
+
+                // Check file type
+                if (fileInput.id === 'id_audio_file' && !file.type.startsWith('audio/')) {
+                    alert('Please upload an audio file');
+                    return;
+                }
+                if (fileInput.id === 'id_cover_image' && !file.type.startsWith('image/')) {
+                    alert('Please upload an image file');
+                    return;
+                }
+
+                // Check file size
+                const maxSize = fileInput.id === 'id_audio_file' ? 10 * 1024 * 1024 : 2 * 1024 * 1024; // 10MB for audio, 2MB for images
+                if (file.size > maxSize) {
+                    alert(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
+                    return;
+                }
+
+                // Create a new FileList object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+
+                // Trigger change event
+                const event = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(event);
+            }
+        }
+
+        // Add event listeners to audio dropzone
+        audioDropzone.addEventListener('dragover', handleDragOver);
+        audioDropzone.addEventListener('dragleave', handleDragLeave);
+        audioDropzone.addEventListener('drop', handleDrop);
+
+        // Add event listeners to image dropzone
+        imageDropzone.addEventListener('dragover', handleDragOver);
+        imageDropzone.addEventListener('dragleave', handleDragLeave);
+        imageDropzone.addEventListener('drop', handleDrop);
+    });
 </script>
 {% endblock %} 

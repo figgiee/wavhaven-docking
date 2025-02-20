@@ -1,0 +1,96 @@
+@keyframes sound-wave-1 {
+  0%, 100% { height: 4px; }
+  50% { height: 25px; }
+}
+
+@keyframes sound-wave-2 {
+  0%, 100% { height: 6px; }
+  50% { height: 35px; }
+}
+
+@keyframes sound-wave-3 {
+  0%, 100% { height: 8px; }
+  50% { height: 45px; }
+}
+
+.animate-sound-wave-1 {
+  animation: sound-wave-1 1.4s ease-in-out infinite;
+}
+
+.animate-sound-wave-2 {
+  animation: sound-wave-2 1.6s ease-in-out infinite;
+}
+
+.animate-sound-wave-3 {
+  animation: sound-wave-3 1.2s ease-in-out infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes fade-in {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes wave-gradient {
+  0%, 100% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+}
+
+.animate-wave-slow {
+  animation: wave-gradient 20s ease-in-out infinite;
+}
+
+.animate-wave-slow-reverse {
+  animation: wave-gradient 15s ease-in-out infinite reverse;
+}
+
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.text-shadow-lg {
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+} 

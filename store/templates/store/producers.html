@@ -1,0 +1,51 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Producers</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for producer in producers %}
+        <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+            <div class="p-6">
+                <div class="flex items-center space-x-4">
+                    <img src="{{ producer.userprofile.get_avatar_url }}" alt="{{ producer.username }}" class="w-16 h-16 rounded-full object-cover">
+                    <div>
+                        <h2 class="text-xl font-semibold">
+                            <a href="{% url 'store:profile' username=producer.username %}" class="hover:text-purple-400 transition">
+                                {{ producer.userprofile.display_name|default:producer.username }}
+                            </a>
+                        </h2>
+                        <p class="text-gray-400">{{ producer.beat_set.count }} beats</p>
+                    </div>
+                </div>
+                {% if producer.userprofile.bio %}
+                <p class="mt-4 text-gray-300">{{ producer.userprofile.bio|truncatewords:30 }}</p>
+                {% endif %}
+                <div class="mt-4 flex space-x-4">
+                    {% if producer.userprofile.website %}
+                    <a href="{{ producer.userprofile.website }}" target="_blank" class="text-purple-400 hover:text-purple-300 transition">
+                        <i class="fas fa-globe"></i>
+                    </a>
+                    {% endif %}
+                    {% if producer.userprofile.soundcloud_link %}
+                    <a href="{{ producer.userprofile.soundcloud_link }}" target="_blank" class="text-purple-400 hover:text-purple-300 transition">
+                        <i class="fab fa-soundcloud"></i>
+                    </a>
+                    {% endif %}
+                    {% if producer.userprofile.instagram_link %}
+                    <a href="{{ producer.userprofile.instagram_link }}" target="_blank" class="text-purple-400 hover:text-purple-300 transition">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-8">
+            <p class="text-gray-400">No producers found.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
