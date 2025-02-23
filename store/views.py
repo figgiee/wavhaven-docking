@@ -13,6 +13,7 @@ from django.views.decorators.http import require_http_methods
 import json
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db import models
+from decimal import Decimal, InvalidOperation
 
 def genres_processor(request):
     return {
@@ -93,23 +94,40 @@ def beat_upload(request):
         genre_id = request.POST.get('genre')
         
         if title and audio_file and price:
-            beat = Beat(
-                title=title,
-                audio_file=audio_file,
-                price=price,
-                producer=request.user,
-                bpm=bpm,
-                key=key,
-                tags=tags,
-                genre_id=genre_id,
-                status='active'  # Set default status
-            )
-            if 'cover_image' in request.FILES:
-                beat.cover_image = request.FILES['cover_image']
-            beat.save()
-            messages.success(request, 'Beat uploaded successfully!')
-            return redirect('store:beat_detail', pk=beat.pk)
-        
+            try:
+                # Convert price to Decimal and validate
+                try:
+                    price = Decimal(price)
+                    if price < 0:
+                        raise ValueError("Price cannot be negative")
+                except (InvalidOperation, ValueError) as e:
+                    messages.error(request, f"Invalid price format: {str(e)}")
+                    genres = Genre.objects.all()
+                    return render(request, 'store/beats/beat_upload.html', {'genres': genres})
+
+                beat = Beat(
+                    title=title,
+                    audio_file=audio_file,
+                    price=price,
+                    producer=request.user,
+                    bpm=int(bpm) if bpm else None,
+                    key=key,
+                    tags=tags,
+                    genre_id=genre_id,
+                    status='active'
+                )
+                if 'cover_image' in request.FILES:
+                    beat.cover_image = request.FILES['cover_image']
+                beat.save()
+                messages.success(request, 'Beat uploaded successfully!')
+                return redirect('store:beat_detail', pk=beat.pk)
+            except Exception as e:
+                messages.error(request, f'Error uploading beat: {str(e)}')
+                genres = Genre.objects.all()
+                return render(request, 'store/beats/beat_upload.html', {'genres': genres})
+        else:
+            messages.error(request, 'Please provide title, audio file, and price.')
+    
     genres = Genre.objects.all()
     return render(request, 'store/beats/beat_upload.html', {'genres': genres})
 

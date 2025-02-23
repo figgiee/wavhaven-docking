@@ -44,6 +44,16 @@
                         @click="nextTrack">
                     <i class="fas fa-forward"></i>
                 </button>
+                <button class="text-gray-400 hover:text-white transition-colors"
+                        @click="toggleLoopMode"
+                        :class="{'text-indigo-400': loopMode !== 'none'}"
+                        :title="loopMode === 'none' ? 'No Loop' : loopMode === 'infinite' ? 'Loop Track' : 'Loop Once'">
+                    <i class="fas" :class="{
+                        'fa-repeat': loopMode === 'none',
+                        'fa-sync': loopMode === 'infinite',
+                        'fa-redo': loopMode === 'once'
+                    }"></i>
+                </button>
             </div>
 
             <!-- Waveform -->
@@ -144,42 +154,92 @@ document.addEventListener('alpine:init', () => {
         isPlaying: false,
         volume: localStorage.getItem('playerVolume') || 100,
         isMuted: false,
-        wavesurfer: null,
         currentTime: 0,
         duration: 0,
-        progress: 0,
         loopMode: 'none',
         queue: [],
         currentQueueIndex: -1,
-        
+        wavesurfer: null,
+
         init() {
             // Try to restore state from sessionStorage
             const savedState = sessionStorage.getItem(PLAYER_STATE_KEY);
             if (savedState) {
                 const state = JSON.parse(savedState);
-                // Only restore the track and queue info, not the position
                 this.currentTrack = state.currentTrack;
                 this.queue = state.queue;
                 this.currentQueueIndex = state.currentQueueIndex;
                 this.loopMode = state.loopMode;
             }
 
+            // Initialize WaveSurfer
+            this.wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: 'rgba(255, 255, 255, 0.2)',
+                progressColor: 'rgba(99, 102, 241, 0.8)',
+                cursorColor: 'rgba(255, 255, 255, 0.5)',
+                barWidth: 2,
+                barGap: 1,
+                height: 32,
+                barRadius: 2,
+                normalize: true,
+                backend: 'MediaElement',
+                hideScrollbar: true,
+                responsive: true,
+                interact: true,
+                partialRender: true,
+                pixelRatio: 1
+            });
+
+            // WaveSurfer event handlers
+            this.wavesurfer.on('ready', () => {
+                this.duration = this.wavesurfer.getDuration();
+                if (this.isPlaying) {
+                    this.wavesurfer.play();
+                }
+                this.syncPlayState();
+            });
+
+            this.wavesurfer.on('audioprocess', (currentTime) => {
+                this.currentTime = currentTime;
+            });
+
+            this.wavesurfer.on('finish', () => {
+                if (this.loopMode === 'infinite') {
+                    this.wavesurfer.play();
+                } else if (this.loopMode === 'once') {
+                    this.wavesurfer.play();
+                    this.loopMode = 'none';
+                } else {
+                    this.isPlaying = false;
+                    this.currentTime = 0;
+                    this.updatePlayState();
+                    setTimeout(() => this.nextTrack(), 0);
+                }
+            });
+
+            // Add click handler for seeking
+            document.querySelector('#waveform').addEventListener('click', (e) => {
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percent = x / rect.width;
+                this.wavesurfer.seekTo(percent);
+                if (this.isPlaying) {
+                    this.wavesurfer.play();
+                }
+            });
+
             if (!window.audioPlayer) {
                 window.audioPlayer = this;
-                this.$nextTick(() => {
-                    this.initWaveSurfer();
-                    
-                    // If we had a track, load it from the start
-                    if (this.currentTrack) {
-                        this.loadTrack(this.currentTrack, 0);
-                    }
-                });
+                if (this.currentTrack) {
+                    this.loadTrack(this.currentTrack, 0);
+                }
             }
-            
+
             // Save state before page unload
             window.addEventListener('beforeunload', () => this.saveState());
             
-            // Handle navigation - save state but don't cleanup
+            // Handle navigation
             document.addEventListener('turbolinks:before-visit', () => this.saveState());
             document.addEventListener('turbolinks:load', () => this.syncPlayState());
             
@@ -187,92 +247,80 @@ document.addEventListener('alpine:init', () => {
             document.addEventListener('visibilitychange', () => {
                 this.syncPlayState();
             });
+
+            // Set initial volume
+            this.wavesurfer.setVolume(this.volume / 100);
         },
-        
-        initWaveSurfer() {
-            const container = document.getElementById('waveform');
-            if (!container) return;
-            
-            // Destroy existing instance if any
-            if (this.wavesurfer) {
-                this.wavesurfer.destroy();
+
+        loadTrack(track, startTime = 0) {
+            if (!this.currentTrack || this.currentTrack.id !== track.id) {
+                startTime = 0;
+                this.currentTime = 0;
+                sessionStorage.removeItem(PLAYER_STATE_KEY);
             }
-            container.innerHTML = '';
             
-            this.wavesurfer = WaveSurfer.create({
-                container: '#waveform',
-                height: 32,
-                waveColor: 'rgba(255, 255, 255, 0.2)',
-                progressColor: 'rgba(255, 255, 255, 0.8)',
-                cursorColor: 'rgba(255, 255, 255, 0.5)',
-                barWidth: 2,
-                barGap: 1,
-                barRadius: 3,
-                responsive: true,
-                interact: true,
-                hideScrollbar: true,
-                normalize: false,
-                partialRender: false,
-                pixelRatio: 1,
-                minPxPerSec: 1,
-                fillParent: true,
-                autoScroll: false,
-                scrollParent: false
-            });
+            this.currentTrack = track;
+            this.currentTime = startTime;
             
-            this.setupWavesurferEvents();
-        },
-        
-        setupWavesurferEvents() {
-            if (!this.wavesurfer) return;
-            
-            this.wavesurfer.on('ready', () => {
+            // Load audio into WaveSurfer
+            this.wavesurfer.load(track.audioUrl);
+            this.wavesurfer.setVolume(this.volume / 100);
+
+            // Set up event handlers
+            this.wavesurfer.once('ready', () => {
                 this.duration = this.wavesurfer.getDuration();
-                this.wavesurfer.setVolume(this.volume / 100);
+                if (startTime > 0) {
+                    this.wavesurfer.seekTo(startTime / this.duration);
+                }
                 if (this.isPlaying) {
                     this.wavesurfer.play();
                 }
-            });
-            
-            this.wavesurfer.on('audioprocess', (currentTime) => {
-                this.currentTime = currentTime;
-                // Save state periodically during playback
-                if (this.currentTime % 5 < 0.1) { // Save every ~5 seconds
-                    this.saveState();
-                }
-            });
-            
-            this.wavesurfer.on('finish', () => {
-                if (this.loopMode === 'infinite') {
-                    this.wavesurfer.play(0);
-                } else if (this.loopMode === 'once') {
-                    this.wavesurfer.play(0);
-                    this.loopMode = 'none';
-                } else {
-                    this.isPlaying = false;
-                    this.currentTime = 0;
-                    this.updatePlayState();
-                    // Ensure next track plays automatically
-                    setTimeout(() => this.nextTrack(), 0);
-                }
-            });
-            
-            this.wavesurfer.on('error', (err) => {
-                console.error('WaveSurfer error:', err);
-                this.initWaveSurfer(); // Reinitialize on error
+                this.syncPlayState();
             });
         },
-        
-        saveState() {
-            const state = {
-                currentTrack: this.currentTrack,
-                isPlaying: this.isPlaying,
-                currentTime: this.currentTime,
-                queue: this.queue,
-                currentQueueIndex: this.currentQueueIndex,
-                loopMode: this.loopMode
-            };
-            sessionStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+
+        play() {
+            if (this.wavesurfer) {
+                this.wavesurfer.play();
+                this.isPlaying = true;
+                this.syncPlayState();
+            }
+        },
+
+        pause() {
+            if (this.wavesurfer) {
+                this.wavesurfer.pause();
+                this.isPlaying = false;
+                this.syncPlayState();
+            }
+        },
+
+        togglePlay() {
+            if (this.isPlaying) {
+                this.pause();
+            } else {
+                this.play();
+            }
+        },
+
+        seekTo(position) {
+            if (this.wavesurfer) {
+                this.wavesurfer.seekTo(position);
+            }
+        },
+
+        toggleMute() {
+            if (this.wavesurfer) {
+                this.isMuted = !this.isMuted;
+                this.wavesurfer.setMuted(this.isMuted);
+            }
+        },
+
+        updateVolume() {
+            if (this.wavesurfer) {
+                this.wavesurfer.setVolume(this.volume / 100);
+                localStorage.setItem('playerVolume', this.volume);
+            }
         },
 
         syncPlayState() {
@@ -288,103 +336,6 @@ document.addEventListener('alpine:init', () => {
             // Dispatch event to notify all components
             this.$dispatch('playstate-changed', {
                 trackId: this.currentTrack.id,
-                isPlaying: this.isPlaying
-            });
-        },
-        
-        loadTrack(track, startTime = 0) {
-            if (!this.wavesurfer) return;
-            
-            // Stop current track if playing
-            if (this.isPlaying) {
-                this.wavesurfer.stop();
-            }
-            
-            // Always start from beginning for new tracks
-            if (!this.currentTrack || this.currentTrack.id !== track.id) {
-                startTime = 0;
-                this.currentTime = 0;
-                sessionStorage.removeItem(PLAYER_STATE_KEY);
-            }
-            
-            this.currentTrack = track;
-            this.currentTime = startTime;
-            
-            // Load and play new track
-            this.wavesurfer.load(track.audioUrl);
-            this.wavesurfer.on('ready', () => {
-                if (startTime > 0) {
-                    this.wavesurfer.seekTo(startTime / this.wavesurfer.getDuration());
-                }
-                if (this.isPlaying) {
-                    this.play();
-                }
-                this.syncPlayState();
-            });
-        },
-
-        play() {
-            if (this.wavesurfer) {
-                this.wavesurfer.play();
-                this.isPlaying = true;
-                this.syncPlayState();
-                this.saveState();
-            }
-        },
-
-        pause() {
-            if (this.wavesurfer) {
-                this.wavesurfer.pause();
-                this.isPlaying = false;
-                this.syncPlayState();
-                this.saveState();
-            }
-        },
-
-        togglePlay() {
-            if (this.isPlaying) {
-                this.pause();
-            } else {
-                this.play();
-            }
-        },
-
-        seekBackward() {
-            if (this.wavesurfer) {
-                const newTime = Math.max(0, this.currentTime - 10);
-                this.wavesurfer.seekTo(newTime / this.duration);
-            }
-        },
-
-        seekForward() {
-            if (this.wavesurfer) {
-                const newTime = Math.min(this.duration, this.currentTime + 10);
-                this.wavesurfer.seekTo(newTime / this.duration);
-            }
-        },
-
-        toggleLoopMode() {
-            const modes = ['none', 'infinite', 'once'];
-            const currentIndex = modes.indexOf(this.loopMode);
-            this.loopMode = modes[(currentIndex + 1) % modes.length];
-        },
-
-        toggleMute() {
-            if (this.wavesurfer) {
-                this.isMuted = !this.isMuted;
-                this.wavesurfer.setMuted(this.isMuted);
-            }
-        },
-
-        updateVolume() {
-            if (this.wavesurfer) {
-                this.wavesurfer.setVolume(this.volume / 100);
-            }
-        },
-
-        updatePlayState() {
-            this.$dispatch('playstate-changed', {
-                trackId: this.currentTrack?.id,
                 isPlaying: this.isPlaying
             });
         },
@@ -468,7 +419,7 @@ document.addEventListener('alpine:init', () => {
             
             // Initialize if needed
             if (!this.wavesurfer) {
-                this.initWaveSurfer();
+                this.init();
             }
             
             // Add to queue if not present
@@ -489,8 +440,20 @@ document.addEventListener('alpine:init', () => {
                 this.togglePlay();
             }
             
-            this.saveState();
             this.syncPlayState();
+        },
+
+        toggleLoopMode() {
+            const modes = ['none', 'infinite', 'once'];
+            const currentIndex = modes.indexOf(this.loopMode);
+            this.loopMode = modes[(currentIndex + 1) % modes.length];
+        },
+
+        updatePlayState() {
+            this.$dispatch('playstate-changed', {
+                trackId: this.currentTrack?.id,
+                isPlaying: this.isPlaying
+            });
         }
     }));
 });
