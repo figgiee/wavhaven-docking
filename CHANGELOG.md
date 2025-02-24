@@ -61,5 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Core dependencies in requirements.txt
 - Basic documentation structure
 
-[0.2.0]: https://github.com/yourusername/wavhaven/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/yourusername/wavhaven/releases/tag/v0.1.0 
+[0.2.1]: https://github.com/figgiee/WAVHaven/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/figgiee/WAVHaven/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/figgiee/WAVHaven/releases/tag/v0.1.0 
