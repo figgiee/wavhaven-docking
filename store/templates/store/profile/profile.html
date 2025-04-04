@@ -2,24 +2,8 @@
 {% load static %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{
-    activeTab: 'beats',
-    searchQuery: '',
-    view: 'grid',
-    sortBy: 'newest',
-    filterGenre: 'all',
-    filterPrice: 'all',
-    filteredContent() {
-        let items = this.activeTab === 'beats' ? {{ uploaded_beats|safe }} : [];
-        if (this.searchQuery) {
-            items = items.filter(item => 
-                item.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-                item.tags.toLowerCase().includes(this.searchQuery.toLowerCase())
-            );
-        }
-        return items;
-    }
-}">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" 
+     x-data="profileData()">
     <!-- Profile Header -->
     <div class="glass-effect rounded-2xl overflow-hidden mb-8">
         <!-- Cover Image/Banner -->
@@ -70,7 +54,7 @@
             <!-- Stats -->
             <div class="flex gap-6 mt-6">
                 <div class="text-center">
-                    <span class="block text-2xl font-bold text-white">{{ uploaded_beats.count }}</span>
+                    <span class="block text-2xl font-bold text-white">{{ beats_count }}</span>
                     <span class="text-gray-400">Beats</span>
                 </div>
                 <div class="text-center">
@@ -212,45 +196,124 @@
             </select>
         </div>
 
-        <!-- Content -->
+        <!-- Grid View -->
         <template x-if="view === 'grid'">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <template x-for="item in filteredContent()" :key="item.id">
-                    <div class="glass-effect rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-200">
-                        <img :src="item.cover_image" :alt="item.title" class="w-full h-48 object-cover">
-                        <div class="p-4">
-                            <h3 class="text-lg font-medium text-white mb-2" x-text="item.title"></h3>
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400" x-text="item.genre"></span>
-                                <span class="text-indigo-400" x-text="'$' + item.price"></span>
+                    <div class="block">
+                        <div class="glass-effect rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-200"
+                             x-data="{ 
+                                isPlaying: false,
+                                track: {
+                                    id: item.id,
+                                    title: item.title,
+                                    producer: item.producer,
+                                    audioUrl: item.audio_file,
+                                    coverImage: item.cover_image
+                                }
+                             }"
+                             @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)">
+                            <div class="relative w-full h-48 bg-gray-900">
+                                <img :src="item.cover_image || '/static/images/default-cover.jpg'" 
+                                     :alt="item.title" 
+                                     class="w-full h-full object-cover">
+                                <!-- Play Button Overlay -->
+                                <template x-if="item.audio_file">
+                                    <button @click.stop="$dispatch('play-track', track)"
+                                            class="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all duration-300">
+                                        <div class="play-button w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center transform transition-all duration-300"
+                                             :class="{ 'scale-95 bg-indigo-500/20': isPlaying, 'hover:scale-110': !isPlaying }">
+                                            <i class="fas text-xl text-white transition-all duration-300"
+                                               :class="{ 
+                                                   'fa-pause scale-95': isPlaying, 
+                                                   'fa-play ml-1 scale-100': !isPlaying 
+                                               }"></i>
+                                        </div>
+                                    </button>
+                                </template>
                             </div>
+                            <a :href="item.url" class="block p-4">
+                                <h3 class="text-lg font-medium text-white mb-2" 
+                                    :class="{ 'text-indigo-400': isPlaying }"
+                                    x-text="item.title"></h3>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-400" x-text="item.genre || 'Uncategorized'"></span>
+                                    <span class="text-indigo-400" x-text="'$' + item.price"></span>
+                                </div>
+                                <div class="mt-2 flex items-center gap-2 text-sm text-gray-500">
+                                    <template x-if="item.bpm">
+                                        <span x-text="item.bpm + ' BPM'"></span>
+                                    </template>
+                                    <template x-if="item.key">
+                                        <span x-text="item.key"></span>
+                                    </template>
+                                </div>
+                            </a>
                         </div>
                     </div>
                 </template>
             </div>
         </template>
 
+        <!-- List View -->
         <template x-if="view === 'list'">
             <div class="space-y-4">
                 <template x-for="item in filteredContent()" :key="item.id">
-                    <div class="glass-effect rounded-xl p-4 hover:bg-white/5 transition-all duration-200">
-                        <div class="flex items-center gap-4">
-                            <img :src="item.cover_image" :alt="item.title" class="w-16 h-16 rounded-lg object-cover">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-medium text-white" x-text="item.title"></h3>
-                                <div class="flex items-center gap-4 text-sm text-gray-400">
-                                    <span x-text="item.genre"></span>
-                                    <span>•</span>
-                                    <span x-text="item.bpm + ' BPM'"></span>
-                                    <span>•</span>
-                                    <span x-text="item.key"></span>
-                                </div>
-                            </div>
+                    <div class="block">
+                        <div class="glass-effect rounded-xl p-4 hover:bg-white/5 transition-all duration-200"
+                             x-data="{ 
+                                isPlaying: false,
+                                track: {
+                                    id: item.id,
+                                    title: item.title,
+                                    producer: item.producer,
+                                    audioUrl: item.audio_file,
+                                    coverImage: item.cover_image
+                                }
+                             }"
+                             @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)">
                             <div class="flex items-center gap-4">
-                                <span class="text-indigo-400 font-medium" x-text="'$' + item.price"></span>
-                                <button class="p-2 text-gray-400 hover:text-white transition-colors">
-                                    <i class="fas fa-play"></i>
-                                </button>
+                                <div class="relative w-16 h-16 bg-gray-900 rounded-lg overflow-hidden">
+                                    <img :src="item.cover_image || '/static/images/default-cover.jpg'" 
+                                         :alt="item.title" 
+                                         class="w-full h-full object-cover">
+                                    <!-- Play Button Overlay -->
+                                    <template x-if="item.audio_file">
+                                        <button @click.stop="$dispatch('play-track', track)"
+                                                class="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50">
+                                            <i class="fas text-white transition-all duration-300"
+                                               :class="{ 
+                                                   'fa-pause': isPlaying, 
+                                                   'fa-play ml-1': !isPlaying 
+                                               }"></i>
+                                        </button>
+                                    </template>
+                                </div>
+                                <div class="flex-1">
+                                    <a :href="item.url">
+                                        <h3 class="text-lg font-medium text-white" 
+                                            :class="{ 'text-indigo-400': isPlaying }"
+                                            x-text="item.title"></h3>
+                                        <div class="flex items-center gap-4 text-sm text-gray-400">
+                                            <span x-text="item.genre || 'Uncategorized'"></span>
+                                            <template x-if="item.bpm">
+                                                <div class="flex items-center gap-2">
+                                                    <span>•</span>
+                                                    <span x-text="item.bpm + ' BPM'"></span>
+                                                </div>
+                                            </template>
+                                            <template x-if="item.key">
+                                                <div class="flex items-center gap-2">
+                                                    <span>•</span>
+                                                    <span x-text="item.key"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="text-indigo-400 font-medium" x-text="'$' + item.price"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -271,6 +334,76 @@
 
 {% block extra_js %}
 <script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('profileData', () => ({
+        activeTab: 'beats',
+        searchQuery: '',
+        view: 'grid',
+        sortBy: 'newest',
+        filterGenre: 'all',
+        filterPrice: 'all',
+        beats: {{ uploaded_beats|safe }},
+        isFollowing: {% if is_following %}true{% else %}false{% endif %},
+        
+        filteredContent() {
+            if (this.activeTab !== 'beats') {
+                return [];
+            }
+            
+            let items = Array.isArray(this.beats) ? this.beats : [];
+            
+            // Search filter with null checks
+            if (this.searchQuery && this.searchQuery.trim()) {
+                const query = this.searchQuery.toLowerCase().trim();
+                items = items.filter(item => {
+                    const title = (item.title || '').toLowerCase();
+                    const tags = Array.isArray(item.tags) ? item.tags : [];
+                    return title.includes(query) || tags.some(tag => tag.toLowerCase().includes(query));
+                });
+            }
+            
+            // Genre filter with null check
+            if (this.filterGenre !== 'all') {
+                items = items.filter(item => 
+                    item.genre && item.genre.toLowerCase() === this.filterGenre.toLowerCase()
+                );
+            }
+            
+            // Price filter with type coercion
+            if (this.filterPrice !== 'all') {
+                const itemPrice = parseFloat(this.filterPrice === 'free' ? '0' : '0.01');
+                items = items.filter(item => {
+                    const price = parseFloat(item.price || '0');
+                    return this.filterPrice === 'free' ? price === 0 : price > 0;
+                });
+            }
+            
+            // Sort with null checks
+            return [...items].sort((a, b) => {
+                switch (this.sortBy) {
+                    case 'oldest':
+                        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                    case 'price-low':
+                        return parseFloat(a.price || '0') - parseFloat(b.price || '0');
+                    case 'price-high':
+                        return parseFloat(b.price || '0') - parseFloat(a.price || '0');
+                    default: // newest
+                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                }
+            });
+        },
+
+        init() {
+            this.$watch('activeTab', () => {
+                this.searchQuery = '';
+                this.filterGenre = 'all';
+                this.filterPrice = 'all';
+                this.sortBy = 'newest';
+            });
+        }
+    }));
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const followBtn = document.getElementById('followBtn');
     if (followBtn) {

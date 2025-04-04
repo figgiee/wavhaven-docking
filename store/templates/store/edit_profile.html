@@ -1,233 +1,157 @@
 {% extends 'store/base.html' %}
-{% load static %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="bg-white shadow-xl rounded-lg overflow-hidden">
-        <div class="px-8 py-6">
-            <h1 class="text-2xl font-bold text-gray-900 mb-6">Edit Profile</h1>
-            
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent mb-4"
+            style="text-shadow: 0 0 25px rgba(37, 99, 235, 0.4);">
+            Edit Profile
+        </h1>
+        <p class="text-gray-400 mb-8">Update your profile information and settings.</p>
+
+        <div class="glass-effect rounded-xl p-8">
             <form method="post" enctype="multipart/form-data" class="space-y-6">
                 {% csrf_token %}
-                
-                <!-- Email -->
-                <div>
-                    <label for="{{ user_form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Email Address
-                    </label>
-                    <div class="mt-1">
-                        {{ user_form.email }}
-                        {% if user_form.email.errors %}
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ user_form.email.errors.0 }}
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Display Name -->
-                <div>
-                    <label for="{{ profile_form.display_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Display Name
-                    </label>
-                    <div class="mt-1">
-                        {{ profile_form.display_name }}
-                        {% if profile_form.display_name.errors %}
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ profile_form.display_name.errors.0 }}
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Avatar -->
-                <div>
-                    <label for="{{ profile_form.avatar.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Profile Picture
-                    </label>
-                    <div class="mt-1 flex items-center space-x-4">
-                        <img src="{{ user.userprofile.get_avatar_url }}" alt="Current avatar" class="w-16 h-16 rounded-full object-cover">
+
+                <!-- Avatar Upload -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Profile Picture</label>
+                    <div class="flex items-center gap-4">
+                        <div class="relative w-20 h-20 rounded-full overflow-hidden bg-gray-700">
+                            <img src="{{ user.userprofile.get_avatar_url }}" 
+                                 alt="{{ user.username }}'s avatar"
+                                 class="w-full h-full object-cover">
+                        </div>
                         <div class="flex-1">
-                            {{ profile_form.avatar }}
+                            <input type="file"
+                                   name="{{ profile_form.avatar.name }}"
+                                   id="{{ profile_form.avatar.id_for_label }}"
+                                   class="hidden"
+                                   accept="image/*">
+                            <label for="{{ profile_form.avatar.id_for_label }}"
+                                   class="block w-full px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700 text-gray-300 cursor-pointer hover:bg-slate-700/50 transition-all">
+                                <span class="flex items-center gap-2">
+                                    <i class="fas fa-upload"></i>
+                                    <span>Choose new picture</span>
+                                </span>
+                            </label>
                             {% if profile_form.avatar.errors %}
-                            <p class="mt-2 text-sm text-red-600">
-                                {{ profile_form.avatar.errors.0 }}
-                            </p>
+                            <p class="mt-1 text-sm text-red-400">{{ profile_form.avatar.errors.0 }}</p>
                             {% endif %}
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- First Name -->
+                    <div class="form-group">
+                        <label for="{{ user_form.first_name.id_for_label }}"
+                               class="block text-sm font-medium text-gray-300 mb-2">
+                            First Name
+                        </label>
+                        <input type="text"
+                               name="{{ user_form.first_name.name }}"
+                               id="{{ user_form.first_name.id_for_label }}"
+                               value="{{ user_form.first_name.value|default:'' }}"
+                               class="w-full px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                               placeholder="Enter your first name">
+                        {% if user_form.first_name.errors %}
+                        <p class="mt-1 text-sm text-red-400">{{ user_form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Name -->
+                    <div class="form-group">
+                        <label for="{{ user_form.last_name.id_for_label }}"
+                               class="block text-sm font-medium text-gray-300 mb-2">
+                            Last Name
+                        </label>
+                        <input type="text"
+                               name="{{ user_form.last_name.name }}"
+                               id="{{ user_form.last_name.id_for_label }}"
+                               value="{{ user_form.last_name.value|default:'' }}"
+                               class="w-full px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                               placeholder="Enter your last name">
+                        {% if user_form.last_name.errors %}
+                        <p class="mt-1 text-sm text-red-400">{{ user_form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="{{ user_form.email.id_for_label }}"
+                           class="block text-sm font-medium text-gray-300 mb-2">
+                        Email Address
+                    </label>
+                    <input type="email"
+                           name="{{ user_form.email.name }}"
+                           id="{{ user_form.email.id_for_label }}"
+                           value="{{ user_form.email.value|default:'' }}"
+                           class="w-full px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                           placeholder="Enter your email address">
+                    {% if user_form.email.errors %}
+                    <p class="mt-1 text-sm text-red-400">{{ user_form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
                 <!-- Bio -->
-                <div>
-                    <label for="{{ profile_form.bio.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                <div class="form-group">
+                    <label for="{{ profile_form.bio.id_for_label }}"
+                           class="block text-sm font-medium text-gray-300 mb-2">
                         Bio
                     </label>
-                    <div class="mt-1">
-                        {{ profile_form.bio }}
-                        {% if profile_form.bio.errors %}
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ profile_form.bio.errors.0 }}
-                        </p>
-                        {% endif %}
-                    </div>
+                    <textarea name="{{ profile_form.bio.name }}"
+                              id="{{ profile_form.bio.id_for_label }}"
+                              rows="4"
+                              class="w-full px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                              placeholder="Tell us about yourself">{{ profile_form.bio.value|default:'' }}</textarea>
+                    {% if profile_form.bio.errors %}
+                    <p class="mt-1 text-sm text-red-400">{{ profile_form.bio.errors.0 }}</p>
+                    {% endif %}
                 </div>
-                
-                <!-- Location -->
-                <div>
-                    <label for="{{ profile_form.location.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Location
-                    </label>
-                    <div class="mt-1">
-                        {{ profile_form.location }}
-                        {% if profile_form.location.errors %}
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ profile_form.location.errors.0 }}
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-                
+
                 <!-- Website -->
-                <div>
-                    <label for="{{ profile_form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                <div class="form-group">
+                    <label for="{{ profile_form.website.id_for_label }}"
+                           class="block text-sm font-medium text-gray-300 mb-2">
                         Website
                     </label>
-                    <div class="mt-1">
-                        {{ profile_form.website }}
-                        {% if profile_form.website.errors %}
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ profile_form.website.errors.0 }}
-                        </p>
-                        {% endif %}
-                    </div>
+                    <input type="url"
+                           name="{{ profile_form.website.name }}"
+                           id="{{ profile_form.website.id_for_label }}"
+                           value="{{ profile_form.website.value|default:'' }}"
+                           class="w-full px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                           placeholder="https://your-website.com">
+                    {% if profile_form.website.errors %}
+                    <p class="mt-1 text-sm text-red-400">{{ profile_form.website.errors.0 }}</p>
+                    {% endif %}
                 </div>
-                
-                <!-- Social Links -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-medium text-gray-900">Social Media Links</h3>
-                    
-                    <!-- SoundCloud -->
-                    <div>
-                        <label for="{{ profile_form.soundcloud_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            SoundCloud
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.soundcloud_link }}
-                        </div>
-                    </div>
-                    
-                    <!-- Bandcamp -->
-                    <div>
-                        <label for="{{ profile_form.bandcamp_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Bandcamp
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.bandcamp_link }}
-                        </div>
-                    </div>
-                    
-                    <!-- YouTube -->
-                    <div>
-                        <label for="{{ profile_form.youtube_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            YouTube
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.youtube_link }}
-                        </div>
-                    </div>
-                    
-                    <!-- Spotify -->
-                    <div>
-                        <label for="{{ profile_form.spotify_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Spotify
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.spotify_link }}
-                        </div>
-                    </div>
-                    
-                    <!-- Twitter -->
-                    <div>
-                        <label for="{{ profile_form.twitter_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Twitter
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.twitter_link }}
-                        </div>
-                    </div>
-                    
-                    <!-- Instagram -->
-                    <div>
-                        <label for="{{ profile_form.instagram_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Instagram
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.instagram_link }}
-                        </div>
-                    </div>
-                    
-                    <!-- Facebook -->
-                    <div>
-                        <label for="{{ profile_form.facebook_link.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Facebook
-                        </label>
-                        <div class="mt-1">
-                            {{ profile_form.facebook_link }}
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Genres -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        Genres
-                    </label>
-                    <div class="mt-2">
-                        {{ profile_form.genres }}
-                        {% if profile_form.genres.errors %}
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ profile_form.genres.errors.0 }}
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Submit Button -->
-                <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 mt-8">
+                    <button type="submit"
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center gap-2">
+                        <i class="fas fa-save"></i>
                         Save Changes
                     </button>
+                    <a href="{% url 'store:dashboard' %}"
+                       class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-all duration-200">
+                        Cancel
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{% block extra_css %}
-<style>
-    /* Style form inputs */
-    input[type="text"],
-    input[type="email"],
-    input[type="url"],
-    textarea {
-        @apply w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500;
-    }
-    
-    /* Style checkboxes */
-    input[type="checkbox"] {
-        @apply rounded border-gray-300 text-indigo-600 focus:ring-indigo-500;
-    }
-    
-    /* Style file input */
-    input[type="file"] {
-        @apply block w-full text-sm text-gray-500
-        file:mr-4 file:py-2 file:px-4
-        file:rounded-full file:border-0
-        file:text-sm file:font-semibold
-        file:bg-indigo-50 file:text-indigo-700
-        hover:file:bg-indigo-100;
-    }
-</style>
-{% endblock %}
+<script>
+    // File input handler for avatar upload
+    document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || 'Choose new picture';
+        const label = this.nextElementSibling.querySelector('span span');
+        label.textContent = fileName;
+    });
+</script>
 {% endblock %} 

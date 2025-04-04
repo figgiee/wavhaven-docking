@@ -1,365 +1,131 @@
 {% extends 'store/base.html' %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8" x-data="{ 
-    sortField: 'added_date',
-    sortOrder: 'desc',
-    searchQuery: '',
-    filterGenre: 'all',
-    filterPrice: 'all',
-    view: 'grid'
-}">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-white mb-4">My Favorites</h1>
-        <p class="text-gray-400">Manage and organize your favorite beats.</p>
-    </div>
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent"
+                style="text-shadow: 0 0 25px rgba(37, 99, 235, 0.4);">
+                My Favorites
+            </h1>
+            <p class="text-gray-400 mt-4">Your collection of favorite beats</p>
+        </div>
 
-    <!-- Filters and Controls -->
-    <div class="glass-effect rounded-xl p-6 mb-8">
-        <div class="flex flex-wrap gap-6 items-center justify-between">
-            <!-- Search and Filters -->
-            <div class="flex flex-wrap gap-4 items-center flex-1">
+        <!-- Filters Section -->
+        <div class="glass-effect rounded-2xl p-6 mb-8">
+            <div class="flex flex-wrap gap-6 items-center justify-between">
                 <!-- Search -->
-                <div class="relative flex-1 max-w-md">
-                    <input type="text" 
-                           x-model="searchQuery" 
-                           placeholder="Search favorites..."
-                           class="w-full bg-gray-800 text-white rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <div class="flex-1 min-w-[300px]">
+                    <div class="relative">
+                        <input type="text" 
+                               placeholder="Search favorites..."
+                               x-model="searchQuery"
+                               class="w-full px-4 py-3 pl-10 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
                 </div>
 
                 <!-- Genre Filter -->
-                <select x-model="filterGenre"
-                        class="bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="all">All Genres</option>
-                    {% for genre in genres %}
-                    <option value="{{ genre.slug }}">{{ genre.name }}</option>
-                    {% endfor %}
-                </select>
-
-                <!-- Price Filter -->
-                <select x-model="filterPrice"
-                        class="bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="all">All Prices</option>
-                    <option value="under-25">Under $25</option>
-                    <option value="25-50">$25 - $50</option>
-                    <option value="over-50">Over $50</option>
-                </select>
-            </div>
-
-            <!-- View Toggle -->
-            <div class="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
-                <button @click="view = 'grid'"
-                        :class="{'bg-indigo-500 text-white': view === 'grid',
-                                'text-gray-400 hover:text-white': view !== 'grid'}"
-                        class="p-2 rounded-md transition-colors">
-                    <i class="fas fa-th-large"></i>
-                </button>
-                <button @click="view = 'list'"
-                        :class="{'bg-indigo-500 text-white': view === 'list',
-                                'text-gray-400 hover:text-white': view !== 'list'}"
-                        class="p-2 rounded-md transition-colors">
-                    <i class="fas fa-list"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Sort Controls -->
-        <div class="flex items-center gap-4 mt-6 pt-6 border-t border-gray-700">
-            <span class="text-gray-400">Sort by:</span>
-            <button @click="sortField = 'added_date'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                    :class="{'text-indigo-400': sortField === 'added_date'}"
-                    class="text-sm font-medium hover:text-indigo-400 transition-colors">
-                Date Added
-                <i class="fas ml-1" :class="{
-                    'fa-sort': sortField !== 'added_date',
-                    'fa-sort-up': sortField === 'added_date' && sortOrder === 'asc',
-                    'fa-sort-down': sortField === 'added_date' && sortOrder === 'desc'
-                }"></i>
-            </button>
-            <button @click="sortField = 'title'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                    :class="{'text-indigo-400': sortField === 'title'}"
-                    class="text-sm font-medium hover:text-indigo-400 transition-colors">
-                Title
-                <i class="fas ml-1" :class="{
-                    'fa-sort': sortField !== 'title',
-                    'fa-sort-up': sortField === 'title' && sortOrder === 'asc',
-                    'fa-sort-down': sortField === 'title' && sortOrder === 'desc'
-                }"></i>
-            </button>
-            <button @click="sortField = 'price'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                    :class="{'text-indigo-400': sortField === 'price'}"
-                    class="text-sm font-medium hover:text-indigo-400 transition-colors">
-                Price
-                <i class="fas ml-1" :class="{
-                    'fa-sort': sortField !== 'price',
-                    'fa-sort-up': sortField === 'price' && sortOrder === 'asc',
-                    'fa-sort-down': sortField === 'price' && sortOrder === 'desc'
-                }"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Grid View -->
-    <div x-show="view === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {% for beat in favorites %}
-        <div class="glass-effect rounded-xl overflow-hidden group"
-             x-data="{ 
-                isPlaying: false,
-                track: {
-                    id: {{ beat.id }},
-                    title: '{{ beat.title|escapejs }}',
-                    producer: '{{ beat.producer.username|escapejs }}',
-                    audioUrl: '{{ beat.audio_file.url|escapejs }}',
-                    coverImage: '{{ beat.get_cover_image_url|escapejs }}'
-                }
-             }"
-             @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)"
-             data-beat-id="{{ beat.id }}">
-            <!-- Beat Cover -->
-            <div class="relative aspect-square">
-                <a href="{% url 'store:beat_detail' beat.id %}" class="block w-full h-full">
-                    <img src="{{ beat.get_cover_image_url }}" 
-                         alt="{{ beat.title }}" 
-                         class="w-full h-full object-cover">
-                </a>
-                
-                <!-- Hover Overlay -->
-                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <!-- Play Button -->
-                    <button @click.stop="$dispatch('play-track', track)"
-                            class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-all">
-                        <i class="fas" :class="{ 'fa-pause': isPlaying, 'fa-play ml-1': !isPlaying }" class="text-white"></i>
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                            class="px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-gray-300 hover:bg-slate-700/50 transition-all flex items-center gap-2">
+                        <span>Filter by Genre</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
                     </button>
-                    <!-- Remove from Favorites -->
-                    <button @click.stop="$dispatch('unfavorite-beat', { beatId: track.id })"
-                            class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-all text-pink-500">
-                        <i class="fas fa-heart"></i>
+                    <div x-show="open"
+                         @click.away="open = false"
+                         class="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10">
+                        <div class="py-2">
+                            {% for genre in genres %}
+                            <a href="?genre={{ genre.id }}" 
+                               class="block px-4 py-2 text-sm text-gray-300 hover:bg-slate-700/50 hover:text-white transition-colors">
+                                {{ genre.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Toggle -->
+                <div class="flex items-center gap-2 text-gray-400">
+                    <button @click="view = 'grid'"
+                            :class="{ 'text-indigo-400': view === 'grid' }"
+                            class="p-2 hover:text-white transition-colors">
+                        <i class="fas fa-grid-2"></i>
+                    </button>
+                    <button @click="view = 'list'"
+                            :class="{ 'text-indigo-400': view === 'list' }"
+                            class="p-2 hover:text-white transition-colors">
+                        <i class="fas fa-list"></i>
                     </button>
                 </div>
             </div>
-
-            <!-- Beat Info -->
-            <a href="{% url 'store:beat_detail' beat.id %}" class="block p-4">
-                <h3 class="font-medium text-white truncate hover:text-indigo-400 transition-colors">{{ beat.title }}</h3>
-                <p class="text-sm text-gray-400 mb-3">by {{ beat.producer.username }}</p>
-                <div class="flex items-center justify-between">
-                    <span class="text-indigo-400 font-medium">${{ beat.price }}</span>
-                    <span class="text-sm text-gray-400">{{ beat.genre.name }}</span>
-                </div>
-            </a>
         </div>
-        {% empty %}
-        <div class="col-span-full text-center py-12">
-            <i class="fas fa-heart text-6xl text-gray-600 mb-4"></i>
-            <h3 class="text-xl font-medium text-white mb-2">No Favorites Yet</h3>
-            <p class="text-gray-400 mb-6">Start exploring beats and add them to your favorites!</p>
-            <a href="{% url 'store:explore_beats' %}" class="nav-button primary">
-                Explore Beats
-            </a>
-        </div>
-        {% endfor %}
-    </div>
 
-    <!-- List View -->
-    <div x-show="view === 'list'" class="glass-effect rounded-xl overflow-hidden">
-        <table class="w-full">
-            <thead>
-                <tr class="text-left text-gray-400 border-b border-gray-700">
-                    <th class="p-4">Beat</th>
-                    <th class="p-4">Producer</th>
-                    <th class="p-4">Genre</th>
-                    <th class="p-4">Price</th>
-                    <th class="p-4">Added Date</th>
-                    <th class="p-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+        <!-- Favorites Grid -->
+        <div x-data="{ 
+            view: 'grid',
+            searchQuery: '',
+            filteredFavorites() {
+                return this.favorites.filter(beat => 
+                    beat.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    beat.producer.toLowerCase().includes(this.searchQuery.toLowerCase())
+                );
+            }
+        }">
+            {% if favorites %}
+            <div :class="{
+                'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6': view === 'grid',
+                'space-y-4': view === 'list'
+            }">
                 {% for beat in favorites %}
-                <tr class="border-b border-gray-800 text-gray-300"
-                    x-data="{ 
-                        isPlaying: false,
-                        track: {
-                            id: {{ beat.id }},
-                            title: '{{ beat.title|escapejs }}',
-                            producer: '{{ beat.producer.username|escapejs }}',
-                            audioUrl: '{{ beat.audio_file.url|escapejs }}',
-                            coverImage: '{{ beat.get_cover_image_url|escapejs }}'
-                        }
-                    }"
-                    @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)"
-                    data-beat-id="{{ beat.id }}">
-                    <td class="p-4">
-                        <div class="flex items-center gap-3">
-                            <img src="{{ beat.get_cover_image_url }}" 
-                                 alt="{{ beat.title }}" 
-                                 class="w-12 h-12 rounded object-cover">
-                            <div>
-                                <a href="{% url 'store:beat_detail' beat.id %}" 
-                                   class="font-medium text-white hover:text-indigo-400 transition-colors">{{ beat.title }}</a>
-                                <div class="text-sm text-gray-400">{{ beat.duration }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="p-4">{{ beat.producer.username }}</td>
-                    <td class="p-4">{{ beat.genre.name }}</td>
-                    <td class="p-4">${{ beat.price }}</td>
-                    <td class="p-4">{{ beat.created_at|date }}</td>
-                    <td class="p-4">
-                        <div class="flex items-center gap-2">
-                            <button @click="$dispatch('play-track', track)"
-                                    class="p-2 text-gray-400 hover:text-white transition-colors">
-                                <i class="fas" :class="{ 'fa-pause': isPlaying, 'fa-play': !isPlaying }"></i>
-                            </button>
-                            <button @click="$dispatch('unfavorite-beat', { beatId: track.id })"
-                                    class="p-2 text-pink-500 hover:text-pink-400 transition-colors">
-                                <i class="fas fa-heart"></i>
-                            </button>
-                            <a href="{% url 'store:beat_detail' beat.id %}" 
-                               class="p-2 text-gray-400 hover:text-white transition-colors">
-                                <i class="fas fa-external-link-alt"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="p-4 text-center text-gray-400">
-                        <div class="flex flex-col items-center py-8">
-                            <i class="fas fa-heart text-4xl mb-4"></i>
-                            <p>No favorites yet.</p>
-                            <a href="{% url 'store:explore_beats' %}" class="mt-4 text-indigo-400 hover:text-indigo-300">
-                                Start exploring beats →
-                            </a>
-                        </div>
-                    </td>
-                </tr>
+                <div class="beat-card">
+                    {% include 'store/components/beat_card.html' with beat=beat %}
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-12">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center">
+                    <i class="fas fa-heart text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-xl font-medium text-white mb-2">No Favorites Yet</h3>
+                <p class="text-gray-400 mb-6">Start exploring and add beats to your favorites!</p>
+                <a href="{% url 'store:explore' %}"
+                   class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                    <i class="fas fa-music"></i>
+                    Browse Beats
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pagination (if needed) -->
+        {% if favorites.has_other_pages %}
+        <div class="mt-12 flex justify-center">
+            <nav class="flex items-center gap-2">
+                {% if favorites.has_previous %}
+                <a href="?page={{ favorites.previous_page_number }}" 
+                   class="p-2 bg-slate-800/50 border border-slate-700 rounded-lg text-gray-300 hover:bg-slate-700/50 transition-all">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+                
+                <span class="px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-gray-300">
+                    Page {{ favorites.number }} of {{ favorites.paginator.num_pages }}
+                </span>
+                
+                {% if favorites.has_next %}
+                <a href="?page={{ favorites.next_page_number }}"
+                   class="p-2 bg-slate-800/50 border border-slate-700 rounded-lg text-gray-300 hover:bg-slate-700/50 transition-all">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
-
-<!-- Add Alpine.js handlers for favorites -->
-<script>
-document.addEventListener('alpine:init', () => {
-    // Store removed beats temporarily for undo functionality
-    const removedBeats = new Map();
-
-    // Handle unfavoriting beats
-    window.addEventListener('unfavorite-beat', async (event) => {
-        const beatId = event.detail.beatId;
-        try {
-            const response = await fetch(`/api/favorites/${beatId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const data = await response.json();
-            if (data.status === 'success') {
-                // Store the beat element before removing it
-                const beatElement = document.querySelector(`[data-beat-id="${beatId}"]`);
-                if (beatElement) {
-                    // Store both the element and its parent for proper reinsertion
-                    removedBeats.set(beatId, {
-                        element: beatElement,
-                        parent: beatElement.parentElement,
-                        nextSibling: beatElement.nextElementSibling
-                    });
-                    beatElement.remove();
-                }
-                
-                // Show success notification with undo button
-                window.dispatchEvent(new CustomEvent('show-notification', {
-                    detail: {
-                        message: 'Removed from favorites',
-                        type: 'success',
-                        duration: 5000, // Give more time for undo
-                        action: {
-                            label: 'Undo',
-                            callback: () => undoUnfavorite(beatId)
-                        }
-                    }
-                }));
-                
-                // If no more favorites, reload the page to show empty state
-                const remainingBeats = document.querySelectorAll('[data-beat-id]');
-                if (remainingBeats.length === 0) {
-                    setTimeout(() => {
-                        if (document.querySelectorAll('[data-beat-id]').length === 0) {
-                            window.location.reload();
-                        }
-                    }, 5000); // Wait for potential undo before reloading
-                }
-            }
-        } catch (error) {
-            console.error('Error unfavoriting beat:', error);
-            window.dispatchEvent(new CustomEvent('show-notification', {
-                detail: {
-                    message: 'Error removing from favorites',
-                    type: 'error'
-                }
-            }));
-        }
-    });
-
-    // Handle undoing unfavorite action
-    async function undoUnfavorite(beatId) {
-        try {
-            // Re-favorite the beat through the API
-            const response = await fetch(`/api/favorites/${beatId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const data = await response.json();
-            if (data.status === 'success') {
-                // Restore the beat element if we have it stored
-                const removedBeat = removedBeats.get(beatId);
-                if (removedBeat) {
-                    const { element, parent, nextSibling } = removedBeat;
-                    if (nextSibling) {
-                        parent.insertBefore(element, nextSibling);
-                    } else {
-                        parent.appendChild(element);
-                    }
-                    removedBeats.delete(beatId);
-
-                    // Show success notification
-                    window.dispatchEvent(new CustomEvent('show-notification', {
-                        detail: {
-                            message: 'Beat restored to favorites',
-                            type: 'success'
-                        }
-                    }));
-                }
-            }
-        } catch (error) {
-            console.error('Error restoring favorite:', error);
-            window.dispatchEvent(new CustomEvent('show-notification', {
-                detail: {
-                    message: 'Error restoring favorite',
-                    type: 'error'
-                }
-            }));
-        }
-    }
-
-    // Clean up stored beats after some time
-    setInterval(() => {
-        const now = Date.now();
-        removedBeats.forEach((value, key) => {
-            if (now - value.timestamp > 10000) { // Clean up after 10 seconds
-                removedBeats.delete(key);
-            }
-        });
-    }, 10000);
-});
-</script>
 {% endblock %} 

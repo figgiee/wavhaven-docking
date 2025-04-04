@@ -39,4 +39,14 @@ ENV/
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Project-specific ignores
+venv/
+node_modules/
+.env
+.cursormemory.md
+celerybeat-schedule
+.coverage
+htmlcov/
+static/ 

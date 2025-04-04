@@ -1,75 +1,68 @@
 {% extends 'store/base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="max-w-md mx-auto">
-    <div class="glass-effect rounded-xl p-8" style="backdrop-filter: blur(2px);">
-        <h2 class="text-3xl font-bold mb-6 gradient-text">Create Account</h2>
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">Create Your Account</h2>
+            <p class="text-gray-400">Join the WavHaven community</p>
+        </div>
         
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
-            
-            <!-- Username -->
-            <div>
-                <label for="id_username" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
-                <input type="text" name="username" id="id_username" required 
-                       class="search-input w-full hover-scale-sm" 
-                       placeholder="Choose a username">
-                {% if form.username.errors %}
-                    <p class="text-red-400 text-sm mt-1">{{ form.username.errors.0 }}</p>
+        <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-white/10">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+                    <p class="text-red-400 text-sm">Please correct the errors below.</p>
+                </div>
                 {% endif %}
-            </div>
+                
+                {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-300 mb-2">
+                        {{ field.label }}
+                    </label>
+                    <div class="mt-1 relative">
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="text-red-400 text-xs mt-1">{{ field.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <div>
+                    <button type="submit" 
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                        Create Account
+                    </button>
+                </div>
+            </form>
             
-            <!-- Email -->
-            <div>
-                <label for="id_email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                    <p class="text-red-400 text-sm mt-1">{{ form.email.errors.0 }}</p>
-                {% endif %}
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-400">
+                    Already have an account? 
+                    <a href="{% url 'store:login' %}" class="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                        Sign in
+                    </a>
+                </p>
             </div>
-            
-            <!-- Password -->
-            <div>
-                <label for="id_password1" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                <input type="password" name="password1" id="id_password1" required 
-                       class="search-input w-full hover-scale-sm" 
-                       placeholder="Create a password">
-                {% if form.password1.errors %}
-                    <p class="text-red-400 text-sm mt-1">{{ form.password1.errors.0 }}</p>
-                {% endif %}
-                <ul class="text-xs text-gray-400 mt-2 space-y-1 list-disc list-inside">
-                    <li>At least 8 characters long</li>
-                    <li>Must contain letters and numbers</li>
-                    <li>Can't be too similar to your username</li>
-                    <li>Can't be a commonly used password</li>
-                </ul>
-            </div>
-            
-            <!-- Confirm Password -->
-            <div>
-                <label for="id_password2" class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
-                <input type="password" name="password2" id="id_password2" required 
-                       class="search-input w-full hover-scale-sm" 
-                       placeholder="Confirm your password">
-                {% if form.password2.errors %}
-                    <p class="text-red-400 text-sm mt-1">{{ form.password2.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <button type="submit" 
-                    class="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105">
-                Create Account
-            </button>
-        </form>
-
-        <div class="mt-6 text-center">
-            <p class="text-gray-400">
-                Already have an account? 
-                <a href="{% url 'login' %}" class="text-blue-400 hover:text-blue-300 transition-colors duration-200">
-                    Sign in
-                </a>
-            </p>
         </div>
     </div>
 </div>
+
+<style>
+    /* Style form inputs to match theme */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+        @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200;
+    }
+    
+    .helptext {
+        @apply block text-xs text-gray-400 mt-1;
+    }
+</style>
 {% endblock %} 

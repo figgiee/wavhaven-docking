@@ -1,0 +1,146 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+                About WavHaven
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                Your premier destination for high-quality beats, loops, soundkits, and presets. 
+                Built by producers, for producers.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Mission Section -->
+<section class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="glass-effect p-8 rounded-2xl">
+                <h2 class="text-3xl font-bold mb-6 text-white">Our Mission</h2>
+                <p class="text-gray-300 mb-6 leading-relaxed">
+                    At WavHaven, we're on a mission to revolutionize the way producers and artists connect, create, and collaborate. 
+                    We believe that great music starts with great sounds, and every producer deserves access to high-quality resources.
+                </p>
+                <p class="text-gray-300 leading-relaxed">
+                    Our platform is designed to empower creators, whether you're a bedroom producer just starting out or a seasoned professional 
+                    looking to expand your sound palette.
+                </p>
+            </div>
+            <div class="relative">
+                <div class="aspect-square rounded-2xl overflow-hidden glass-effect">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mix-blend-overlay"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <i class="fas fa-music text-8xl text-white/10"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold mb-12 text-center text-white">What Sets Us Apart</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Quality -->
+            <div class="glass-effect p-6 rounded-xl">
+                <div class="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-4">
+                    <i class="fas fa-award text-xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-3 text-white">Premium Quality</h3>
+                <p class="text-gray-300">
+                    Every sound on our platform undergoes rigorous quality checks to ensure you get only the best.
+                </p>
+            </div>
+            
+            <!-- Community -->
+            <div class="glass-effect p-6 rounded-xl">
+                <div class="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-4">
+                    <i class="fas fa-users text-xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-3 text-white">Vibrant Community</h3>
+                <p class="text-gray-300">
+                    Join a thriving network of producers and artists, share feedback, and grow together.
+                </p>
+            </div>
+            
+            <!-- Fair Pricing -->
+            <div class="glass-effect p-6 rounded-xl">
+                <div class="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-4">
+                    <i class="fas fa-hand-holding-dollar text-xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-3 text-white">Fair Pricing</h3>
+                <p class="text-gray-300">
+                    Transparent pricing and fair revenue sharing to support both creators and buyers.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Team Section -->
+<section class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold mb-12 text-center text-white">Meet Our Team</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Team Member 1 -->
+            <div class="glass-effect p-6 rounded-xl text-center">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-user text-3xl text-white/30"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2 text-white">John Doe</h3>
+                <p class="text-indigo-400 mb-3">Founder & CEO</p>
+                <p class="text-gray-300 text-sm">
+                    Veteran music producer with over 10 years of industry experience.
+                </p>
+            </div>
+            
+            <!-- Team Member 2 -->
+            <div class="glass-effect p-6 rounded-xl text-center">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-user text-3xl text-white/30"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2 text-white">Jane Smith</h3>
+                <p class="text-indigo-400 mb-3">Head of Community</p>
+                <p class="text-gray-300 text-sm">
+                    Community builder and music enthusiast focused on creator growth.
+                </p>
+            </div>
+            
+            <!-- Team Member 3 -->
+            <div class="glass-effect p-6 rounded-xl text-center">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-user text-3xl text-white/30"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2 text-white">Mike Johnson</h3>
+                <p class="text-indigo-400 mb-3">Lead Developer</p>
+                <p class="text-gray-300 text-sm">
+                    Tech expert ensuring smooth platform experience for all users.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="py-20 relative">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-white">Get in Touch</h2>
+        <p class="text-gray-300 mb-8">
+            Have questions or suggestions? We'd love to hear from you.
+        </p>
+        <a href="mailto:contact@wavhaven.com" 
+           class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25">
+            <i class="fas fa-envelope mr-2"></i>
+            Contact Us
+        </a>
+    </div>
+</section>
+{% endblock %} 

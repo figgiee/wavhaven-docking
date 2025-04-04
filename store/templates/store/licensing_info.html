@@ -1,0 +1,235 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+                Licensing Information
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                Understanding your rights and usage terms for WavHaven content
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- License Types Section -->
+<section class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Basic License -->
+            <div class="glass-effect rounded-xl p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Basic License</h2>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                        <i class="fas fa-music text-xl text-indigo-400"></i>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Includes</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Personal Use</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Non-Profit Projects</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Music Videos (Non-Monetized)</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Social Media Content</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Restrictions</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-times text-red-400 w-5"></i>
+                                <span>Commercial Use</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-times text-red-400 w-5"></i>
+                                <span>Monetization</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-times text-red-400 w-5"></i>
+                                <span>Distribution Rights</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Premium License -->
+            <div class="glass-effect rounded-xl p-8 relative overflow-hidden">
+                <div class="absolute top-3 right-3">
+                    <span class="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-sm font-medium">
+                        Recommended
+                    </span>
+                </div>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Premium License</h2>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                        <i class="fas fa-star text-xl text-indigo-400"></i>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Includes</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>All Basic License Features</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Commercial Use</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Monetization Rights</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Worldwide Distribution</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Radio Broadcasting</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Restrictions</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-times text-red-400 w-5"></i>
+                                <span>Resale/Redistribution</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-times text-red-400 w-5"></i>
+                                <span>Transfer of Rights</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exclusive Rights -->
+            <div class="glass-effect rounded-xl p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Exclusive Rights</h2>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                        <i class="fas fa-crown text-xl text-indigo-400"></i>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Includes</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Full Ownership Transfer</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Unlimited Usage Rights</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Source Files Included</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-5"></i>
+                                <span>Content Removed from Platform</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Additional Benefits</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-plus text-indigo-400 w-5"></i>
+                                <span>Custom Contract</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-gray-300">
+                                <i class="fas fa-plus text-indigo-400 w-5"></i>
+                                <span>Direct Producer Contact</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Usage Terms -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-white text-center mb-12">General Terms & Conditions</h2>
+        <div class="space-y-6">
+            <!-- Credit Attribution -->
+            <div class="glass-effect rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Credit Attribution</h3>
+                <p class="text-gray-300">
+                    Proper credit must be given to the original producer in the format: "Produced by [Producer Name]" 
+                    in all applicable uses, including video descriptions, song credits, and metadata.
+                </p>
+            </div>
+
+            <!-- License Transfer -->
+            <div class="glass-effect rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">License Transfer</h3>
+                <p class="text-gray-300">
+                    Licenses are non-transferable unless explicitly stated (Exclusive Rights). The license remains 
+                    valid only for the original purchaser and cannot be resold or transferred to third parties.
+                </p>
+            </div>
+
+            <!-- Content Restrictions -->
+            <div class="glass-effect rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Content Restrictions</h3>
+                <p class="text-gray-300">
+                    Licensed content cannot be used in any content promoting hate speech, violence, or illegal activities. 
+                    WavHaven reserves the right to revoke licenses used in violation of these terms.
+                </p>
+            </div>
+
+            <!-- Modification Rights -->
+            <div class="glass-effect rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Modification Rights</h3>
+                <p class="text-gray-300">
+                    Users may modify the licensed content for their projects but cannot claim ownership of the 
+                    original content unless holding Exclusive Rights.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Custom Licensing -->
+<section class="py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-white">Need Custom Licensing?</h2>
+        <p class="text-gray-300 mb-8">
+            Contact us for custom licensing options tailored to your specific needs.
+        </p>
+        <a href="{% url 'store:support' %}" 
+           class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25">
+            <i class="fas fa-envelope mr-2"></i>
+            Contact Support
+        </a>
+    </div>
+</section>
+{% endblock %} 

@@ -1,222 +1,290 @@
-# WavHaven API Documentation
+# WAVHaven API Documentation
+
+## Overview
+
+The WAVHaven API provides endpoints for managing beats, user profiles, and transactions. This documentation covers all available endpoints, authentication methods, and common patterns.
 
 ## Authentication
 
-### POST /api/auth/login/
-Login with username and password.
+All authenticated endpoints require a JWT token in the Authorization header:
 
-**Request:**
-```json
+```
+Authorization: Bearer <token>
+```
+
+To obtain a token, use the login endpoint:
+
+```http
+POST /api/auth/token/
+Content-Type: application/json
+
 {
-    "username": "string",
-    "password": "string"
+    "username": "your_username",
+    "password": "your_password"
 }
 ```
 
-**Response:**
+Response:
 ```json
 {
-    "token": "string",
-    "user": {
-        "id": "integer",
-        "username": "string",
-        "email": "string"
-    }
+    "access": "your.jwt.token",
+    "refresh": "your.refresh.token"
 }
-```
-
-### POST /api/auth/register/
-Register a new user account.
-
-**Request:**
-```json
-{
-    "username": "string",
-    "email": "string",
-    "password": "string",
-    "password_confirm": "string"
-}
-```
-
-## Beats
-
-### GET /api/beats/
-List all beats with optional filtering.
-
-**Query Parameters:**
-- `genre`: Filter by genre name
-- `producer`: Filter by producer username
-- `q`: Search query
-- `sort`: Sort by (price, date, popularity)
-- `page`: Page number
-- `page_size`: Results per page
-
-### POST /api/beats/
-Upload a new beat (requires authentication).
-
-**Request:**
-```json
-{
-    "title": "string",
-    "price": "decimal",
-    "audio_file": "file",
-    "cover_image": "file (optional)",
-    "genre": "integer",
-    "bpm": "integer (optional)",
-    "key": "string (optional)",
-    "tags": "string (optional)"
-}
-```
-
-### GET /api/beats/{id}/
-Get detailed information about a specific beat.
-
-### PATCH /api/beats/{id}/
-Update a beat (requires authentication and ownership).
-
-### DELETE /api/beats/{id}/
-Delete a beat (requires authentication and ownership).
-
-## User Profiles
-
-### GET /api/profiles/{username}/
-Get user profile information.
-
-### PATCH /api/profiles/{username}/
-Update user profile (requires authentication and ownership).
-
-**Request:**
-```json
-{
-    "display_name": "string (optional)",
-    "bio": "string (optional)",
-    "avatar": "file (optional)",
-    "website": "string (optional)",
-    "social_links": {
-        "soundcloud": "string (optional)",
-        "youtube": "string (optional)",
-        "instagram": "string (optional)"
-    }
-}
-```
-
-## Favorites
-
-### POST /api/favorites/{beat_id}/
-Add a beat to favorites (requires authentication).
-
-### DELETE /api/favorites/{beat_id}/
-Remove a beat from favorites (requires authentication).
-
-### GET /api/favorites/check/{beat_id}/
-Check if a beat is in user's favorites (requires authentication).
-
-## Cart
-
-### POST /api/cart/add/
-Add a beat to cart (requires authentication).
-
-**Request:**
-```json
-{
-    "beat_id": "integer",
-    "license_type": "string"
-}
-```
-
-### GET /api/cart/check/{beat_id}/
-Check if a beat is in user's cart (requires authentication).
-
-### GET /api/cart/
-Get cart contents (requires authentication).
-
-### DELETE /api/cart/{item_id}/
-Remove item from cart (requires authentication).
-
-## Comments
-
-### POST /api/beats/{beat_id}/comments/
-Add a comment to a beat (requires authentication).
-
-**Request:**
-```json
-{
-    "content": "string",
-    "parent_id": "integer (optional, for replies)"
-}
-```
-
-### DELETE /api/comments/{comment_id}/
-Delete a comment (requires authentication and ownership).
-
-### POST /api/comments/{comment_id}/upvote/
-Upvote a comment (requires authentication).
-
-## Follow System
-
-### POST /api/profiles/{username}/follow/
-Follow a user (requires authentication).
-
-### POST /api/profiles/{username}/unfollow/
-Unfollow a user (requires authentication).
-
-## Error Responses
-
-All endpoints may return these error responses:
-
-### 400 Bad Request
-```json
-{
-    "error": "string",
-    "details": "object (optional)"
-}
-```
-
-### 401 Unauthorized
-```json
-{
-    "error": "Authentication credentials were not provided"
-}
-```
-
-### 403 Forbidden
-```json
-{
-    "error": "You do not have permission to perform this action"
-}
-```
-
-### 404 Not Found
-```json
-{
-    "error": "Requested resource was not found"
-}
-```
-
-## Authentication
-
-All API endpoints except login and registration require JWT authentication.
-Include the JWT token in the Authorization header:
-
-```
-Authorization: Bearer <your_token>
 ```
 
 ## Rate Limiting
 
-API requests are rate limited to:
-- 100 requests per minute for authenticated users
-- 20 requests per minute for anonymous users
+- Authenticated endpoints: 100 requests per minute
+- Unauthenticated endpoints: 20 requests per minute
+- File upload endpoints: 10 requests per minute
+
+## Endpoints
+
+### Beats
+
+#### List Beats
+```http
+GET /api/beats/
+```
+
+Query Parameters:
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
+- `search`: Search term
+- `genre`: Filter by genre
+- `price_min`: Minimum price
+- `price_max`: Maximum price
+- `sort`: Sort field (created_at, price, popularity)
+- `order`: Sort order (asc, desc)
+
+Response:
+```json
+{
+    "count": 100,
+    "next": "http://api.wavhaven.com/api/beats/?page=2",
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "title": "Summer Vibes",
+            "producer": {
+                "id": 1,
+                "username": "producer1",
+                "avatar_url": "..."
+            },
+            "cover_image": "...",
+            "preview_url": "...",
+            "price": 29.99,
+            "genre": "Hip Hop",
+            "bpm": 140,
+            "key": "C minor",
+            "tags": ["melodic", "summer", "upbeat"],
+            "created_at": "2024-02-24T12:00:00Z",
+            "waveform_url": "...",
+            "duration": 180
+        }
+    ]
+}
+```
+
+#### Get Beat Details
+```http
+GET /api/beats/{id}/
+```
+
+Response: Same as single beat object from list endpoint
+
+#### Create Beat
+```http
+POST /api/beats/
+Content-Type: multipart/form-data
+
+{
+    "title": "New Beat",
+    "audio_file": <file>,
+    "cover_image": <file>,
+    "price": 29.99,
+    "genre": "Hip Hop",
+    "bpm": 140,
+    "key": "C minor",
+    "tags": ["melodic", "summer"],
+    "description": "A summer vibe beat"
+}
+```
+
+#### Update Beat
+```http
+PATCH /api/beats/{id}/
+Content-Type: application/json
+
+{
+    "title": "Updated Title",
+    "price": 39.99
+}
+```
+
+#### Delete Beat
+```http
+DELETE /api/beats/{id}/
+```
+
+### Users
+
+#### Get Profile
+```http
+GET /api/users/profile/
+```
+
+Response:
+```json
+{
+    "id": 1,
+    "username": "producer1",
+    "email": "producer1@example.com",
+    "avatar_url": "...",
+    "bio": "...",
+    "website": "...",
+    "social_links": {
+        "twitter": "...",
+        "instagram": "...",
+        "soundcloud": "..."
+    },
+    "beats_count": 50,
+    "followers_count": 1000,
+    "following_count": 500
+}
+```
+
+#### Update Profile
+```http
+PATCH /api/users/profile/
+Content-Type: multipart/form-data
+
+{
+    "avatar": <file>,
+    "bio": "New bio",
+    "website": "https://example.com",
+    "social_links": {
+        "twitter": "https://twitter.com/producer1"
+    }
+}
+```
+
+### Transactions
+
+#### Purchase Beat
+```http
+POST /api/transactions/purchase/
+Content-Type: application/json
+
+{
+    "beat_id": 1,
+    "payment_method_id": "pm_..."
+}
+```
+
+Response:
+```json
+{
+    "id": "tr_...",
+    "status": "completed",
+    "amount": 29.99,
+    "beat": {
+        "id": 1,
+        "title": "Summer Vibes",
+        "download_url": "..."
+    },
+    "created_at": "2024-02-24T12:00:00Z"
+}
+```
+
+### Playlists
+
+#### List Playlists
+```http
+GET /api/playlists/
+```
+
+#### Create Playlist
+```http
+POST /api/playlists/
+Content-Type: application/json
+
+{
+    "name": "My Favorites",
+    "description": "My favorite beats",
+    "is_public": true
+}
+```
+
+#### Add Beat to Playlist
+```http
+POST /api/playlists/{id}/beats/
+Content-Type: application/json
+
+{
+    "beat_id": 1
+}
+```
+
+## Error Responses
+
+All error responses follow this format:
+```json
+{
+    "status_code": 400,
+    "message": "Error message",
+    "errors": {
+        "field": ["Error details"]
+    }
+}
+```
+
+Common status codes:
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 429: Too Many Requests
 
 ## Pagination
 
-List endpoints return paginated results:
+All list endpoints support pagination with these response fields:
+- `count`: Total number of items
+- `next`: URL for next page (null if no more pages)
+- `previous`: URL for previous page (null if first page)
+- `results`: Array of items for current page
 
-```json
+## Filtering and Sorting
+
+Most list endpoints support:
+- Field filtering: `?field=value`
+- Search: `?search=term`
+- Sorting: `?sort=field&order=asc|desc`
+
+## File Upload Guidelines
+
+- Audio files: MP3, WAV (max 50MB)
+- Images: JPG, PNG (max 5MB)
+- File naming: lowercase, no spaces
+- Audio quality: minimum 192kbps for MP3
+
+## Webhook Events
+
+Subscribe to webhooks for real-time updates:
+```http
+POST /api/webhooks/
+Content-Type: application/json
+
 {
-    "count": "integer",
-    "next": "string (url)",
-    "previous": "string (url)",
-    "results": []
+    "url": "https://your-domain.com/webhook",
+    "events": ["beat.purchased", "user.followed"]
 }
-``` 
+```
+
+Available events:
+- beat.created
+- beat.updated
+- beat.purchased
+- user.followed
+- playlist.updated 

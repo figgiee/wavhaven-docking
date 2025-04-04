@@ -1,0 +1,168 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+                Returns & Refunds
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                Our commitment to customer satisfaction and fair refund policies
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Satisfaction Guarantee -->
+        <div class="glass-effect rounded-xl p-8 mb-8">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-xl text-indigo-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white">30-Day Satisfaction Guarantee</h2>
+            </div>
+            <p class="text-gray-300 leading-relaxed">
+                We stand behind the quality of our content. If you're not completely satisfied with your purchase, 
+                we offer a 30-day money-back guarantee. This ensures you can try our products risk-free and get 
+                a full refund if they don't meet your expectations.
+            </p>
+        </div>
+
+        <!-- Refund Eligibility -->
+        <div class="space-y-8">
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Refund Eligibility</h2>
+                <div class="space-y-6">
+                    <!-- Eligible for Refund -->
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-4">Eligible for Refund</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 mt-1"></i>
+                                <span>Technical issues preventing proper download or usage</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 mt-1"></i>
+                                <span>Quality issues not apparent in the preview</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 mt-1"></i>
+                                <span>Incorrect or misrepresented product descriptions</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-check text-emerald-400 mt-1"></i>
+                                <span>Duplicate purchases (accidental)</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Not Eligible for Refund -->
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-4">Not Eligible for Refund</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-times text-red-400 mt-1"></i>
+                                <span>Change of mind after downloading content</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-times text-red-400 mt-1"></i>
+                                <span>Exclusive rights purchases</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-times text-red-400 mt-1"></i>
+                                <span>Claims without valid reasons or documentation</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-gray-300">
+                                <i class="fas fa-times text-red-400 mt-1"></i>
+                                <span>Requests made after 30 days of purchase</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refund Process -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Refund Process</h2>
+                <div class="space-y-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                            <span class="text-indigo-400 font-medium">1</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-medium text-white mb-2">Contact Support</h3>
+                            <p class="text-gray-300">
+                                Submit a refund request through our support system with your order ID and reason for the refund.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                            <span class="text-indigo-400 font-medium">2</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-medium text-white mb-2">Review Process</h3>
+                            <p class="text-gray-300">
+                                Our team will review your request within 24-48 hours and may request additional information if needed.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                            <span class="text-indigo-400 font-medium">3</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-medium text-white mb-2">Refund Processing</h3>
+                            <p class="text-gray-300">
+                                Once approved, refunds are processed within 3-5 business days to your original payment method.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Additional Information</h2>
+                <div class="space-y-4 text-gray-300">
+                    <p>
+                        <strong class="text-white">Processing Time:</strong> Refunds typically appear in your account 
+                        within 5-10 business days, depending on your payment provider.
+                    </p>
+                    <p>
+                        <strong class="text-white">Currency Exchange:</strong> Refund amounts may vary due to 
+                        currency exchange rates if applicable.
+                    </p>
+                    <p>
+                        <strong class="text-white">License Revocation:</strong> Upon refund, any licenses associated 
+                        with the purchase will be revoked.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Support -->
+<section class="py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-white">Need Help with a Refund?</h2>
+        <p class="text-gray-300 mb-8">
+            Our support team is here to assist you with the refund process.
+        </p>
+        <a href="{% url 'store:support' %}" 
+           class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25">
+            <i class="fas fa-envelope mr-2"></i>
+            Contact Support
+        </a>
+    </div>
+</section>
+{% endblock %} 

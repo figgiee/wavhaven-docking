@@ -2,9 +2,10 @@
 Django==4.2.0
 djangorestframework==3.14.0
 django-cors-headers==4.3.0
+django-taggit==5.0.1  # For managing tags
 
 # Image and file processing
-Pillow==10.0.0  # For image processing and thumbnails
+Pillow==11.1.0  # For image processing and thumbnails
 python-magic==0.4.27  # For file type detection
 django-storages==1.14.0  # For handling file storage (AWS S3, etc.)
 
@@ -26,6 +27,10 @@ django-guardian==2.4.0  # For object-level permissions
 
 # Cache and session
 django-redis==5.4.0  # For caching and session storage
+
+# Payments
+stripe==8.5.0  # Stripe payment processing
+paypalrestsdk==1.12.0  # PayPal REST SDK
 
 # API documentation
 drf-yasg==1.21.7  # Swagger/OpenAPI documentation

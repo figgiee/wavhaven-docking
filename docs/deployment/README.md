@@ -1,280 +1,428 @@
-# WavHaven Deployment Guide
+# WAVHaven Deployment Guide
 
-This guide covers the deployment process for WavHaven in both development and production environments.
+## Overview
 
-## Development Setup
+This guide covers the deployment process for WAVHaven, including server setup, Docker configuration, and monitoring.
 
-### Prerequisites
-- Python 3.8+
-- Node.js 14+ (for frontend assets)
-- Git
+## Prerequisites
 
-### Environment Setup
-1. Clone the repository:
+- Docker and Docker Compose
+- AWS Account with S3 access
+- Domain name and SSL certificate
+- Stripe account for payments
+- PostgreSQL database
+- Redis server
+- SMTP server for emails
+
+## Environment Setup
+
+1. Create `.env` file:
+
 ```bash
-git clone https://github.com/yourusername/wavhaven.git
-cd wavhaven
-```
-
-2. Create and activate virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up environment variables:
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your settings:
-```env
-DEBUG=True
+# Django
+DJANGO_SETTINGS_MODULE=config.settings.production
 SECRET_KEY=your-secret-key
-DATABASE_URL=sqlite:///db.sqlite3
-ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ORIGIN_WHITELIST=http://localhost:8000
-```
-
-5. Run migrations:
-```bash
-python manage.py migrate
-```
-
-6. Create superuser:
-```bash
-python manage.py createsuperuser
-```
-
-7. Run development server:
-```bash
-python manage.py runserver
-```
-
-## Production Deployment
-
-### Prerequisites
-- PostgreSQL
-- Nginx
-- Gunicorn
-- Redis (for caching)
-- SSL certificate
-- Domain name
-
-### Server Setup (Ubuntu 20.04+)
-
-1. Update system and install dependencies:
-```bash
-sudo apt update
-sudo apt upgrade -y
-sudo apt install python3-pip python3-venv postgresql nginx redis-server
-```
-
-2. Create PostgreSQL database:
-```bash
-sudo -u postgres psql
-CREATE DATABASE wavhaven;
-CREATE USER wavhaven_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE wavhaven TO wavhaven_user;
-\q
-```
-
-3. Clone and setup application:
-```bash
-cd /var/www
-git clone https://github.com/yourusername/wavhaven.git
-cd wavhaven
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-4. Configure environment variables:
-```bash
-nano .env
-```
-
-Add production settings:
-```env
-DEBUG=False
-SECRET_KEY=your-secure-secret-key
-DATABASE_URL=postgres://wavhaven_user:your_password@localhost:5432/wavhaven
 ALLOWED_HOSTS=your-domain.com
-STATIC_ROOT=/var/www/wavhaven/staticfiles
-MEDIA_ROOT=/var/www/wavhaven/media
-REDIS_URL=redis://localhost:6379/1
-```
+DEBUG=False
 
-5. Setup Gunicorn:
-Create systemd service file:
-```bash
-sudo nano /etc/systemd/system/wavhaven.service
-```
+# Database
+DB_NAME=wavhaven
+DB_USER=wavhaven_user
+DB_PASSWORD=your-db-password
+DB_HOST=postgres
+DB_PORT=5432
 
-Add configuration:
-```ini
-[Unit]
-Description=WavHaven Gunicorn daemon
-After=network.target
+# Redis
+REDIS_URL=redis://redis:6379/1
 
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/wavhaven
-ExecStart=/var/www/wavhaven/venv/bin/gunicorn config.wsgi:application \
-    --workers 3 \
-    --bind unix:/var/www/wavhaven/wavhaven.sock \
-    --access-logfile /var/log/gunicorn/access.log \
-    --error-logfile /var/log/gunicorn/error.log
-
-[Install]
-WantedBy=multi-user.target
-```
-
-6. Configure Nginx:
-```bash
-sudo nano /etc/nginx/sites-available/wavhaven
-```
-
-Add configuration:
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location = /favicon.ico { access_log off; log_not_found off; }
-    
-    location /static/ {
-        root /var/www/wavhaven;
-    }
-
-    location /media/ {
-        root /var/www/wavhaven;
-    }
-
-    location / {
-        include proxy_params;
-        proxy_pass http://unix:/var/www/wavhaven/wavhaven.sock;
-    }
-}
-```
-
-7. Enable site and restart services:
-```bash
-sudo ln -s /etc/nginx/sites-available/wavhaven /etc/nginx/sites-enabled
-sudo systemctl start wavhaven
-sudo systemctl enable wavhaven
-sudo systemctl restart nginx
-```
-
-8. Setup SSL with Certbot:
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.com
-```
-
-### File Storage
-
-For production, configure AWS S3 or similar for media file storage:
-
-1. Install boto3:
-```bash
-pip install boto3
-```
-
-2. Add S3 settings to .env:
-```env
+# AWS
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 AWS_STORAGE_BUCKET_NAME=your-bucket-name
 AWS_S3_REGION_NAME=your-region
+
+# Stripe
+STRIPE_PUBLIC_KEY=your-stripe-public-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=your-webhook-secret
+
+# Email
+EMAIL_HOST=your-smtp-host
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-email
+EMAIL_HOST_PASSWORD=your-email-password
+EMAIL_USE_TLS=True
 ```
 
-### Monitoring
+## Docker Configuration
 
-1. Install monitoring tools:
+1. Production Docker Compose (`docker-compose.prod.yml`):
+
+```yaml
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - wavhaven_net
+
+  postgres:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - wavhaven_net
+
+  redis:
+    image: redis:6-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - wavhaven_net
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: celery -A config worker -l INFO
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - wavhaven_net
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: celery -A config beat -l INFO
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - wavhaven_net
+
+  nginx:
+    image: nginx:1.21-alpine
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - ./nginx/prod:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    networks:
+      - wavhaven_net
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+
+networks:
+  wavhaven_net:
+    driver: bridge
+```
+
+2. Production Dockerfile (`Dockerfile.prod`):
+
+```dockerfile
+# Build stage
+FROM python:3.9-slim as builder
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev
+
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Final stage
+FROM python:3.9-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV DJANGO_SETTINGS_MODULE config.settings.production
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+RUN pip install --no-cache /wheels/*
+
+COPY . .
+
+RUN python manage.py collectstatic --noinput
+
+USER nobody
+```
+
+## Nginx Configuration
+
+Create `nginx/prod/wavhaven.conf`:
+
+```nginx
+upstream wavhaven {
+    server web:8000;
+}
+
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Referrer-Policy strict-origin-when-cross-origin;
+
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://wavhaven;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static/ {
+        alias /app/staticfiles/;
+        expires 30d;
+        access_log off;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    location /media/ {
+        alias /app/media/;
+        expires 30d;
+        access_log off;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    location /ws/ {
+        proxy_pass http://wavhaven;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+## Deployment Steps
+
+1. Initial Setup:
 ```bash
-pip install sentry-sdk
+# Clone repository
+git clone https://github.com/yourusername/wavhaven.git
+cd wavhaven
+
+# Create necessary directories
+mkdir -p nginx/prod certbot/conf certbot/www
+
+# Copy environment template
+cp .env.example .env
+# Edit .env with production values
 ```
 
-2. Add Sentry configuration to settings.py:
-```python
-import sentry_sdk
-sentry_sdk.init(
-    dsn="your-sentry-dsn",
-    traces_sample_rate=1.0,
-)
-```
-
-### Backup
-
-1. Setup automated PostgreSQL backups:
+2. SSL Certificate:
 ```bash
-sudo nano /etc/cron.daily/backup-wavhaven
+# Start nginx for initial certificate
+docker-compose -f docker-compose.prod.yml up -d nginx
+docker-compose -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d your-domain.com
 ```
 
-Add backup script:
+3. Start Services:
 ```bash
-#!/bin/bash
-BACKUP_DIR="/var/backups/wavhaven"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-pg_dump wavhaven | gzip > "$BACKUP_DIR/wavhaven_$TIMESTAMP.sql.gz"
+# Build and start all services
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Run migrations
+docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+
+# Create superuser
+docker-compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
 ```
 
-2. Make script executable:
+## Monitoring
+
+1. Setup Prometheus monitoring:
 ```bash
-sudo chmod +x /etc/cron.daily/backup-wavhaven
+# Install django-prometheus
+pip install django-prometheus
+
+# Add to INSTALLED_APPS
+INSTALLED_APPS = [
+    ...
+    'django_prometheus',
+]
+
+# Add to urls.py
+urlpatterns = [
+    ...
+    path('metrics/', include('django_prometheus.urls')),
+]
 ```
 
-### Security Considerations
+2. Configure Grafana dashboards for:
+- Request latency
+- Database query performance
+- Cache hit rates
+- Error rates
+- System metrics
 
-1. Configure firewall:
+## Backup Strategy
+
+1. Database Backups:
 ```bash
-sudo ufw allow 'Nginx Full'
-sudo ufw allow OpenSSH
-sudo ufw enable
+# Daily backups
+docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U $DB_USER $DB_NAME > backup_$(date +%Y%m%d).sql
+
+# Restore from backup
+cat backup.sql | docker-compose -f docker-compose.prod.yml exec -T postgres psql -U $DB_USER $DB_NAME
 ```
 
-2. Set secure permissions:
+2. Media Backups:
+- AWS S3 versioning enabled
+- Regular sync of local media to S3
+
+## Security Checklist
+
+- [ ] SSL/TLS configured
+- [ ] Security headers set
+- [ ] Django security settings verified
+- [ ] Database access restricted
+- [ ] Redis password set
+- [ ] Admin access limited by IP
+- [ ] Regular security updates
+- [ ] File upload validation
+- [ ] Rate limiting configured
+- [ ] CORS settings reviewed
+
+## Troubleshooting
+
+1. Check logs:
 ```bash
-sudo chown -R www-data:www-data /var/www/wavhaven
-sudo chmod -R 755 /var/www/wavhaven
+docker-compose -f docker-compose.prod.yml logs -f [service]
 ```
 
-3. Regular updates:
-```bash
-sudo apt update
-sudo apt upgrade
-pip install --upgrade -r requirements.txt
-```
+2. Common issues:
+- Database connection errors
+- Static files not serving
+- SSL certificate issues
+- Redis connection problems
+- Celery task failures
+
+## Performance Optimization
+
+1. Django:
+- Configure caching
+- Optimize database queries
+- Use debug toolbar in development
+
+2. Nginx:
+- Enable gzip compression
+- Configure microcaching
+- Optimize SSL settings
+
+3. Database:
+- Regular vacuum
+- Index optimization
+- Connection pooling
 
 ## Maintenance
 
-### Database Migrations
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
+1. Regular tasks:
+- SSL certificate renewal
+- Database backups
+- Log rotation
+- Security updates
+- Performance monitoring
 
-### Collecting Static Files
+2. Update procedure:
 ```bash
-python manage.py collectstatic --no-input
-```
+# Pull latest changes
+git pull origin main
 
-### Clearing Cache
-```bash
-python manage.py shell
->>> from django.core.cache import cache
->>> cache.clear()
-```
+# Build new images
+docker-compose -f docker-compose.prod.yml build
 
-### Monitoring Logs
-```bash
-tail -f /var/log/gunicorn/error.log
-tail -f /var/log/nginx/error.log
+# Apply migrations
+docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+
+# Restart services
+docker-compose -f docker-compose.prod.yml up -d
 ``` 

@@ -1,0 +1,235 @@
+{% load store_extras %}
+
+<!-- Comments Section -->
+<div class="comments-section mt-12" x-data="commentsSection">
+    <!-- Comment Form -->
+    <div class="mb-8">
+        <h3 class="text-xl font-bold text-white mb-4">Comments</h3>
+        <form @submit.prevent="submitComment" class="space-y-4">
+            {% csrf_token %}
+            <div class="relative">
+                <textarea x-model="commentContent"
+                         :placeholder="replyToId ? `Reply to ${replyToUsername}...` : 'Add a comment...'"
+                         class="w-full bg-white/5 text-white rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                         rows="3"></textarea>
+                <template x-if="replyToId">
+                    <button @click="cancelReply" 
+                            type="button"
+                            class="absolute top-2 right-2 text-gray-400 hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </template>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+                        :disabled="!commentContent.trim()">
+                    <span x-text="replyToId ? 'Post Reply' : 'Post Comment'"></span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Comments List -->
+    <div class="space-y-6">
+        {% for comment in comments %}
+        <div class="comment-thread" id="comment-{{ comment.id }}">
+            <!-- Main Comment -->
+            <div class="comment bg-white/5 rounded-xl p-4">
+                <div class="flex items-start gap-4">
+                    <!-- User Avatar -->
+                    <img src="{{ comment.user.userprofile.get_avatar_url }}" 
+                         alt="{{ comment.user.username }}" 
+                         class="w-10 h-10 rounded-full object-cover">
+                    
+                    <div class="flex-1 min-w-0">
+                        <!-- Comment Header -->
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <span class="font-medium text-white">{{ comment.user.username }}</span>
+                                <span class="text-sm text-gray-400 ml-2">{{ comment.created_at|timesince }} ago</span>
+                            </div>
+                            {% if user.is_authenticated and comment.user == user %}
+                            <div class="flex items-center">
+                                <form method="POST" action="{% url 'store:delete_comment' comment.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="text-red-400 hover:text-red-300 transition-colors"
+                                            onclick="return confirm('Are you sure you want to delete this comment?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Comment Content -->
+                        <p class="text-gray-300 mb-3">{{ comment.content }}</p>
+
+                        <!-- Comment Actions -->
+                        <div class="flex items-center gap-4">
+                            <!-- Upvote Button -->
+                            <button @click="upvoteComment({{ comment.id }})"
+                                    class="flex items-center gap-1 text-sm"
+                                    :class="{ 'text-indigo-400': {{ comment_upvotes|get_item:comment.id|yesno:'true,false' }}, 'text-gray-400 hover:text-gray-300': !{{ comment_upvotes|get_item:comment.id|yesno:'true,false' }} }">
+                                <i class="fas fa-arrow-up"></i>
+                                <span x-text="upvoteCounts[{{ comment.id }}] || {{ comment.get_upvote_count }}"></span>
+                            </button>
+
+                            <!-- Reply Button -->
+                            {% if user.is_authenticated %}
+                            <button @click="startReply({{ comment.id }}, '{{ comment.user.username }}')"
+                                    class="text-sm text-gray-400 hover:text-gray-300 transition-colors">
+                                <i class="fas fa-reply mr-1"></i>
+                                Reply
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Replies -->
+            {% if comment.replies.exists %}
+            <div class="replies ml-8 mt-4 space-y-4">
+                {% for reply in comment.replies.all %}
+                <div class="reply bg-white/5 rounded-xl p-4" id="comment-{{ reply.id }}">
+                    <div class="flex items-start gap-4">
+                        <!-- User Avatar -->
+                        <img src="{{ reply.user.userprofile.get_avatar_url }}" 
+                             alt="{{ reply.user.username }}" 
+                             class="w-8 h-8 rounded-full object-cover">
+                        
+                        <div class="flex-1 min-w-0">
+                            <!-- Reply Header -->
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <span class="font-medium text-white">{{ reply.user.username }}</span>
+                                    <span class="text-sm text-gray-400 ml-2">{{ reply.created_at|timesince }} ago</span>
+                                </div>
+                                {% if user.is_authenticated and reply.user == user %}
+                                <div class="flex items-center">
+                                    <form method="POST" action="{% url 'store:delete_comment' reply.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="text-red-400 hover:text-red-300 transition-colors"
+                                                onclick="return confirm('Are you sure you want to delete this reply?')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Reply Content -->
+                            <p class="text-gray-300 mb-3">{{ reply.content }}</p>
+
+                            <!-- Reply Actions -->
+                            <div class="flex items-center gap-4">
+                                <!-- Upvote Button -->
+                                <button @click="upvoteComment({{ reply.id }})"
+                                        class="flex items-center gap-1 text-sm"
+                                        :class="{ 'text-indigo-400': {{ comment_upvotes|get_item:reply.id|yesno:'true,false' }}, 'text-gray-400 hover:text-gray-300': !{{ comment_upvotes|get_item:reply.id|yesno:'true,false' }} }">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span x-text="upvoteCounts[{{ reply.id }}] || {{ reply.get_upvote_count }}"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="text-center py-8">
+            <p class="text-gray-400">No comments yet. Be the first to comment!</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Alpine.js component script -->
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('commentsSection', () => ({
+        commentContent: '',
+        replyToId: null,
+        replyToUsername: '',
+        upvoteCounts: {},
+
+        async submitComment() {
+            if (!this.commentContent.trim()) return;
+
+            try {
+                const response = await fetch(`/beat/${beatId}/comment/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: new URLSearchParams({
+                        'content': this.commentContent,
+                        'parent_id': this.replyToId || ''
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Refresh the page to show the new comment
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Error posting comment:', error);
+                window.dispatchEvent(new CustomEvent('show-notification', {
+                    detail: {
+                        message: 'Error posting comment. Please try again.',
+                        type: 'error'
+                    }
+                }));
+            }
+        },
+
+        startReply(commentId, username) {
+            this.replyToId = commentId;
+            this.replyToUsername = username;
+            // Scroll the comment form into view
+            document.querySelector('.comments-section textarea').scrollIntoView({ behavior: 'smooth' });
+        },
+
+        cancelReply() {
+            this.replyToId = null;
+            this.replyToUsername = '';
+            this.commentContent = '';
+        },
+
+        async upvoteComment(commentId) {
+            try {
+                const response = await fetch(`/comment/${commentId}/upvote/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    this.upvoteCounts[commentId] = data.upvote_count;
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Error upvoting comment:', error);
+                window.dispatchEvent(new CustomEvent('show-notification', {
+                    detail: {
+                        message: 'Error upvoting comment. Please try again.',
+                        type: 'error'
+                    }
+                }));
+            }
+        }
+    }));
+});</script>

@@ -13,7 +13,7 @@
                 {% csrf_token %}
                 <div class="flex gap-4 justify-center">
                     <button type="submit" class="nav-button bg-red-500 hover:bg-red-600">Delete</button>
-                    <a href="{% url 'dashboard' %}" class="nav-button">Cancel</a>
+                    <a href="{% url 'store:dashboard' %}" class="nav-button">Cancel</a>
                 </div>
             </form>
         </div>

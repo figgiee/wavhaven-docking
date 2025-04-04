@@ -1,0 +1,331 @@
+{
+    "version": "1.0",
+    "projectRequirements": {
+        "backend": {
+            "framework": "Django",
+            "database": "PostgreSQL",
+            "api": "Django REST Framework",
+            "caching": "Redis",
+            "tasks": "Celery"
+        },
+        "frontend": {
+            "framework": "Alpine.js",
+            "styling": "Tailwind CSS",
+            "audioPlayer": "Howler.js",
+            "visualization": "Web Audio API",
+            "icons": "Font Awesome",
+            "dynamicContent": "HTMX"
+        },
+        "infrastructure": {
+            "containerization": "Docker",
+            "server": {
+                "proxy": "Nginx",
+                "wsgi": "Gunicorn"
+            },
+            "storage": "AWS S3",
+            "payments": "Stripe"
+        }
+    },
+    "language": {
+        "javascript": {
+            "indent": {
+                "style": "space",
+                "size": 4
+            },
+            "lineWidth": 100,
+            "quotes": "single",
+            "semicolons": true,
+            "trailingComma": "es5",
+            "bracketSpacing": true,
+            "arrowParens": "always",
+            "functionStyle": "expression",
+            "asyncStyle": "always",
+            "testFirst": true
+        },
+        "typescript": {
+            "indent": {
+                "style": "space",
+                "size": 4
+            },
+            "lineWidth": 100,
+            "quotes": "single",
+            "semicolons": true,
+            "trailingComma": "es5",
+            "bracketSpacing": true,
+            "arrowParens": "always",
+            "strictNullChecks": true,
+            "noImplicitAny": true
+        },
+        "python": {
+            "indent": {
+                "style": "space",
+                "size": 4
+            },
+            "lineWidth": 100,
+            "quotes": "single",
+            "docstringStyle": "google",
+            "importOrder": [
+                "django",
+                "rest_framework",
+                "third_party",
+                "local"
+            ],
+            "asyncDefault": false,
+            "testFirst": true,
+            "djangoPatterns": {
+                "modelFields": "single_line",
+                "viewMethods": "grouped",
+                "adminConfig": "nested"
+            }
+        },
+        "html": {
+            "indent": {
+                "style": "space",
+                "size": 4
+            },
+            "lineWidth": 100,
+            "selfClosingTags": true,
+            "quoteStyle": "double",
+            "attributeOrder": [
+                "x-data",
+                "x-show",
+                "x-cloak",
+                "x-transition",
+                "@click",
+                "@submit",
+                "class",
+                "id",
+                "name",
+                "type",
+                "value",
+                "placeholder",
+                "src",
+                "alt",
+                "href",
+                "role",
+                "aria-*"
+            ],
+            "templateTags": {
+                "loadOrder": [
+                    "static",
+                    "custom_tags",
+                    "filters"
+                ],
+                "blockNaming": "descriptive"
+            }
+        },
+        "css": {
+            "indent": {
+                "style": "space",
+                "size": 4
+            },
+            "lineWidth": 100,
+            "sortProperties": true,
+            "vendorPrefix": "standard",
+            "tailwind": {
+                "customClasses": "components",
+                "layerOrder": [
+                    "base",
+                    "components",
+                    "utilities"
+                ]
+            }
+        }
+    },
+    "documentation": {
+        "style": "meaningful",
+        "requirements": [
+            "Document all functions, classes, and modules",
+            "Explain intentions and assumptions",
+            "Keep docstrings up to date and concise",
+            "No personal pronouns",
+            "Document only when necessary"
+        ],
+        "docstringTemplate": {
+            "function": [
+                "Brief description of function purpose",
+                "Args:",
+                "Returns:",
+                "Raises:",
+                "Notes: Include any fixed issues here"
+            ],
+            "model": [
+                "Model description and purpose",
+                "Fields:",
+                "Methods:",
+                "Meta:",
+                "Notes:"
+            ],
+            "view": [
+                "View description and purpose",
+                "Methods:",
+                "Context:",
+                "Templates:",
+                "Notes:"
+            ]
+        }
+    },
+    "errorHandling": {
+        "rules": [
+            "Only catch specific exceptions",
+            "No bare try-except blocks",
+            "Use proper error logging",
+            "Use Django's built-in error handling where appropriate"
+        ]
+    },
+    "logging": {
+        "rules": [
+            "Use Django's logging configuration",
+            "Use logger instead of print statements",
+            "Remove debug prints after fixing issues",
+            "Log appropriate levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+        ]
+    },
+    "dependencies": {
+        "management": {
+            "file": "requirements.txt",
+            "sections": [
+                "Django and REST framework",
+                "Image and file processing",
+                "Audio processing",
+                "Development and deployment",
+                "Database",
+                "Authentication and permissions",
+                "Cache and session",
+                "API documentation",
+                "Testing"
+            ]
+        }
+    },
+    "configuration": {
+        "file": "settings.py",
+        "structure": {
+            "base": "settings/base.py",
+            "local": "settings/local.py",
+            "production": "settings/production.py"
+        }
+    },
+    "naming": {
+        "conventions": {
+            "privateVariables": "_prefix",
+            "constants": "UPPER_SNAKE_CASE",
+            "models": "PascalCase",
+            "views": "PascalCaseView",
+            "forms": "PascalCaseForm",
+            "urls": "lowercase_with_underscores"
+        }
+    },
+    "development": {
+        "flow": [
+            "Write tests first",
+            "Plan before implementation",
+            "Run tests in venv",
+            "Keep code DRY",
+            "Follow Django's MTV pattern"
+        ],
+        "fileStructure": {
+            "initFiles": "empty",
+            "configLocation": "settings.py",
+            "templatesLocation": "templates/app_name/",
+            "staticLocation": "static/app_name/"
+        }
+    },
+    "testing": {
+        "requirements": [
+            "Write tests first",
+            "Keep tests clean and updated",
+            "Run in venv",
+            "Test edge cases",
+            "Use Django's TestCase",
+            "Test models, views, and forms separately",
+            "Use factories for test data"
+        ],
+        "framework": {
+            "unit": "django.test.TestCase",
+            "api": "rest_framework.test.APITestCase",
+            "client": "django.test.Client"
+        }
+    },
+    "memory": {
+        "file": ".cursormemory.md",
+        "updateRules": [
+            "Project specifications",
+            "Code flow",
+            "URL patterns",
+            "Template structure",
+            "Development instructions"
+        ]
+    },
+    "planning": {
+        "considerations": [
+            "Code integration",
+            "Error handling",
+            "Edge cases",
+            "Frontend interaction",
+            "User experience",
+            "Developer experience",
+            "Database schema",
+            "URL structure",
+            "Template hierarchy"
+        ]
+    },
+    "formatting": {
+        "indentationStyle": "space",
+        "indentSize": 4,
+        "maxLineWidth": 100,
+        "endOfLine": "lf",
+        "trimTrailingWhitespace": true,
+        "insertFinalNewline": true
+    },
+    "linting": {
+        "javascript": {
+            "useEslint": true,
+            "config": {
+                "env": {
+                    "browser": true,
+                    "es6": true
+                },
+                "extends": ["eslint:recommended"],
+                "rules": {
+                    "no-unused-vars": "warn",
+                    "no-console": "error",
+                    "prefer-const": "error"
+                }
+            }
+        },
+        "python": {
+            "useFlake8": true,
+            "config": {
+                "max-line-length": 100,
+                "ignore": ["E203", "W503"],
+                "per-file-ignores": {
+                    "__init__.py": ["F401"]
+                }
+            }
+        }
+    },
+    "editor": {
+        "rulers": [100],
+        "wordWrap": "off",
+        "insertSpaces": true,
+        "detectIndentation": true,
+        "trimAutoWhitespace": true
+    },
+    "git": {
+        "ignorePatterns": [
+            "*.pyc",
+            "__pycache__/",
+            "venv/",
+            "node_modules/",
+            ".env",
+            "*.log",
+            "media/",
+            "static/",
+            "db.sqlite3",
+            ".cursormemory.md",
+            "celerybeat-schedule",
+            ".coverage",
+            "htmlcov/"
+        ]
+    }
+} 

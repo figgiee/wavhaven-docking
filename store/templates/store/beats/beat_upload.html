@@ -1,481 +1,552 @@
 {% extends 'store/base.html' %}
+{% load static %}
 
 {% block content %}
-<style>
-    /* Custom audio player styling */
-    audio {
-        display: none; /* Hide the default audio player */
-    }
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Header -->
+    <div class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent"
+            style="text-shadow: 0 0 30px rgba(99, 102, 241, 0.4);">
+            Share Your Sound
+        </h1>
+        <p class="text-xl text-gray-400">Choose your content type and start sharing</p>
+    </div>
 
-    /* Hide persistent player on upload page */
-    #persistent-player {
-        display: none !important;
-    }
+    <!-- Content Type Selection -->
+    <div class="mb-16 overflow-x-auto pb-4 -mx-4 px-4 sm:px-0 sm:overflow-x-visible" 
+         x-data="{ selectedType: '{{ form_data.selected_type|default:'beat' }}' }">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-[640px] sm:min-w-0">
+            <!-- Beat Card -->
+            <button @click="selectedType = 'beat'"
+                    :class="{ 
+                        'ring-2 ring-indigo-500 bg-indigo-500/10 scale-[1.02] shadow-lg shadow-indigo-500/20': selectedType === 'beat',
+                        'hover:bg-white/5 hover:scale-[1.01]': selectedType !== 'beat'
+                    }"
+                    class="relative p-4 rounded-xl bg-black/40 border border-white/10 transition-all duration-200 group text-left">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-music text-lg text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-medium text-white mb-1">Beats</h3>
+                        <p class="text-xs text-gray-400 mb-3">Share your beats with the world</p>
+                        <ul class="space-y-1.5">
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-3"></i>
+                                <span>WAV, MP3, AIFF</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-3"></i>
+                                <span>Up to 100MB</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </button>
 
-    /* Waveform visualization styling */
-    #preview-waveform {
-        width: 100%;
-        height: 64px;
-        background: rgba(30, 41, 59, 0.3);
-        border-radius: 8px;
-        overflow: hidden;
-    }
+            <!-- Loop Card -->
+            <button @click="selectedType = 'loop'"
+                    :class="{ 'ring-2 ring-indigo-500 bg-indigo-500/10': selectedType === 'loop' }"
+                    class="relative p-6 rounded-xl bg-black/40 border border-white/10 hover:bg-white/5 transition-all duration-200 group text-left">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-sync text-xl text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-1">Loops</h3>
+                        <p class="text-sm text-gray-400 mb-4">Perfect loops for producers</p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-4"></i>
+                                <span>WAV, MP3, AIFF</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-4"></i>
+                                <span>Up to 50MB</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </button>
 
-    #preview-waveform wave {
-        height: 64px !important;
-    }
+            <!-- Soundkit Card -->
+            <button @click="selectedType = 'soundkit'"
+                    :class="{ 'ring-2 ring-indigo-500 bg-indigo-500/10': selectedType === 'soundkit' }"
+                    class="relative p-6 rounded-xl bg-black/40 border border-white/10 hover:bg-white/5 transition-all duration-200 group text-left">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-drum text-xl text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-1">Soundkits</h3>
+                        <p class="text-sm text-gray-400 mb-4">Complete sound collections</p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-4"></i>
+                                <span>ZIP files</span>
+                            </li>
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-4"></i>
+                                <span>Up to 500MB</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </button>
 
-    /* Animated bars */
-    #preview-waveform wave canvas {
-        transition: transform 0.2s ease;
-    }
-    #preview-waveform wave.playing canvas {
-        animation: pulse 1s ease-in-out infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scaleY(1); }
-        50% { transform: scaleY(1.1); }
-        100% { transform: scaleY(1); }
-    }
-</style>
+            <!-- Preset Card -->
+            <button @click="selectedType = 'preset'"
+                    :class="{ 'ring-2 ring-indigo-500 bg-indigo-500/10': selectedType === 'preset' }"
+                    class="relative p-6 rounded-xl bg-black/40 border border-white/10 hover:bg-white/5 transition-all duration-200 group text-left">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-sliders-h text-xl text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-1">Presets</h3>
+                        <p class="text-sm text-gray-400 mb-4">Share your sound design</p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-4"></i>
+                                <span class="group relative cursor-help">
+                                    Various formats
+                                    <div class="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-64 p-3 bg-black/90 backdrop-blur-sm border border-white/10 rounded-lg text-xs text-gray-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-xl z-50">
+                                        <div class="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-black/90 border-l border-b border-white/10 rotate-45"></div>
+                                        <p class="mb-1.5"><span class="text-indigo-400">Plugin Formats:</span> .fxp, .fxb, .vstpreset, .aupreset</p>
+                                        <p class="mb-1.5"><span class="text-indigo-400">DAW Projects:</span> .als, .flp, .ptx, .cpr, .logic</p>
+                                        <p><span class="text-indigo-400">DAW Presets:</span> .adv, .adg, .fst, .pst, .tfx</p>
+                                    </div>
+                                </span>
+                            </li>
+                            <li class="flex items-center gap-2 text-xs text-gray-300">
+                                <i class="fas fa-check text-emerald-400 w-4"></i>
+                                <span>Up to 100MB</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
 
-<div class="max-w-6xl mx-auto">
-    <div class="glass-effect rounded-xl p-8" style="backdrop-filter: blur(2px);">
-        <h2 class="text-3xl font-bold mb-6 gradient-text">Upload Beat</h2>
-        
-        <form method="post" enctype="multipart/form-data" x-data="{ 
-            submitting: false,
-            validateForm() {
-                const title = document.getElementById('id_title').value;
-                const price = document.getElementById('id_price').value;
-                const genre = document.getElementById('id_genre').value;
-                const audioFile = document.getElementById('id_audio_file').files[0];
-                
-                if (!title) {
-                    alert('Please enter a title');
-                    return false;
-                }
-                if (!price || price <= 0) {
-                    alert('Please enter a valid price');
-                    return false;
-                }
-                if (!genre) {
-                    alert('Please select a genre');
-                    return false;
-                }
-                if (!audioFile) {
-                    alert('Please upload an audio file');
-                    return false;
-                }
-                
-                return true;
-            }
-        }" @submit.prevent="
-            if (validateForm()) {
-                submitting = true;
-                $el.submit();
-            }
-        ">
+    <!-- Upload Form -->
+    <div class="max-w-6xl mx-auto">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 sm:space-y-10">
             {% csrf_token %}
+            <input type="hidden" name="content_type" :value="selectedType">
             
             <!-- Two Column Layout -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Left Column - Basic Info -->
-                <div class="space-y-6">
-                    <!-- Title -->
-                    <div>
-                        <label for="id_title" class="block text-sm font-medium text-gray-300 mb-2">Title</label>
-                        <input type="text" name="title" id="id_title" required 
-                               class="search-input w-full hover-scale-sm" 
-                               placeholder="Enter beat title">
-                    </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Metadata -->
+                <div class="glass-effect rounded-xl p-4 sm:p-8">
+                    <h2 class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                        <i class="fas fa-tags text-indigo-400"></i>
+                        Metadata
+                    </h2>
                     
-                    <!-- Price and BPM Row -->
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-6">
+                        <!-- Title -->
                         <div>
-                            <label for="id_price" class="block text-sm font-medium text-gray-300 mb-2">Price ($)</label>
-                            <input type="number" name="price" id="id_price" required 
-                                   class="search-input w-full hover-scale-sm" 
-                                   placeholder="Enter price"
-                                   step="0.01">
+                            <label for="title" class="block text-sm font-medium text-gray-300 mb-2">Title</label>
+                            <input type="text" 
+                                   id="title" 
+                                   name="title" 
+                                   required
+                                   maxlength="50"
+                                   class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200"
+                                   placeholder="Enter title">
                         </div>
-                        
-                        <div>
-                            <label for="id_bpm" class="block text-sm font-medium text-gray-300 mb-2">BPM</label>
-                            <input type="number" name="bpm" id="id_bpm" 
-                                   class="search-input w-full hover-scale-sm" 
-                                   placeholder="Enter BPM">
-                        </div>
-                    </div>
-                    
-                    <!-- Genre and Key Row -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="id_genre" class="block text-sm font-medium text-gray-300 mb-2">Genre</label>
-                            <select name="genre" id="id_genre" required 
-                                    class="search-input w-full hover-scale-sm bg-[#1a1f2d] text-gray-300">
-                                <option value="" class="bg-[#1a1f2d]">Select a genre</option>
-                                {% for genre in genres %}
-                                    <option value="{{ genre.id }}" class="bg-[#1a1f2d]">{{ genre.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label for="id_key" class="block text-sm font-medium text-gray-300 mb-2">Key</label>
-                            <input type="text" name="key" id="id_key" 
-                                   class="search-input w-full hover-scale-sm" 
-                                   placeholder="e.g., C minor">
-                        </div>
-                    </div>
 
-                    <!-- Tags -->
-                    <div x-data="tagInput({% if beat %}{{ beat.tags|safe }}{% else %}''{% endif %})" class="space-y-2">
-                        <label for="id_tags" class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
-                        <div class="relative">
-                            <div class="search-input w-full min-h-[42px] flex flex-wrap gap-2 p-2">
+                        <!-- Price, BPM, and Key in a row -->
+                        <div class="flex flex-wrap gap-4">
+                            <!-- Price -->
+                            <div>
+                                <label for="price" class="block text-sm font-medium text-gray-300 mb-2">Price (USD)</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                    <input type="text" 
+                                           id="price" 
+                                           name="price" 
+                                           pattern="^([0-9]{1,3}|[0-9]{1,3}\.[0-9]{1,2})$"
+                                           inputmode="decimal"
+                                           required
+                                           x-data
+                                           @input="$el.value = $el.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1').replace(/^(\d{0,3})(\.\d{0,2})?.*/, '$1$2')"
+                                           class="w-[120px] pl-8 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200"
+                                           placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <!-- BPM -->
+                            <div x-data="{ 
+                                bpmValue: 120,
+                                tempValue: '120',
+                                updateBPM() {
+                                    if (this.tempValue === '' || isNaN(this.tempValue)) {
+                                        this.bpmValue = 120;
+                                        this.tempValue = '120';
+                                    } else {
+                                        let num = parseInt(this.tempValue);
+                                        if (num > 180) num = 180;
+                                        if (num < 60) num = 60;
+                                        this.bpmValue = num;
+                                        this.tempValue = num.toString();
+                                    }
+                                }
+                            }">
+                                <label for="bpm" class="block text-sm font-medium text-gray-300 mb-2">BPM</label>
+                                <div class="w-[120px] px-4 py-3 bg-black/40 border border-white/10 rounded-xl flex items-center gap-2">
+                                    <input type="range"
+                                           id="bpm"
+                                           name="bpm"
+                                           min="60"
+                                           max="180"
+                                           x-model="bpmValue"
+                                           @input="tempValue = bpmValue"
+                                           class="w-full h-2 bg-black/60 rounded-lg appearance-none cursor-pointer">
+                                    <input type="text"
+                                           x-model="tempValue"
+                                           @input="$el.value = $el.value.replace(/[^0-9]/g, '')"
+                                           @blur="updateBPM()"
+                                           class="w-10 bg-transparent text-white text-sm font-medium text-right focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                </div>
+                            </div>
+
+                            <!-- Key -->
+                            <div x-data="{ 
+                                query: '',
+                                showSuggestions: false,
+                                keys: [
+                                    // Major Keys
+                                    'Cmaj', 'Gmaj', 'Dmaj', 'Amaj', 'Emaj', 'Bmaj', 
+                                    'F#maj', 'Dbmaj', 'Abmaj', 'Ebmaj', 'Bbmaj', 'Fmaj',
+                                    // Minor Keys
+                                    'Amin', 'Emin', 'Bmin', 'F#min', 'C#min', 'G#min',
+                                    'Ebmin', 'Bbmin', 'Fmin', 'Cmin', 'Gmin', 'Dmin'
+                                ],
+                                filteredKeys() {
+                                    const searchTerm = this.query.toLowerCase();
+                                    return this.keys.filter(key => 
+                                        key.toLowerCase().startsWith(searchTerm)
+                                    );
+                                }
+                            }">
+                                <label for="key" class="block text-sm font-medium text-gray-300 mb-2">Key</label>
+                                <div class="relative">
+                                    <input type="text"
+                                           id="key"
+                                           name="key"
+                                           x-model="query"
+                                           @focus="showSuggestions = true"
+                                           @blur="setTimeout(() => showSuggestions = false, 200)"
+                                           @input="showSuggestions = true"
+                                           required
+                                           autocomplete="off"
+                                           class="w-[120px] px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200"
+                                           placeholder="e.g. Amin">
+                                    
+                                    <!-- Key Suggestions -->
+                                    <div x-show="showSuggestions && filteredKeys().length > 0"
+                                         class="absolute z-10 w-[120px] mt-1 py-2 bg-black/90 border border-white/10 rounded-xl shadow-xl backdrop-blur-xl max-h-[200px] overflow-y-auto">
+                                        <div class="divide-y divide-white/5">
+                                            <template x-for="key in filteredKeys()" :key="key">
+                                                <button type="button"
+                                                        @click="query = key; showSuggestions = false"
+                                                        @mousedown.prevent
+                                                        class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                                                        x-text="key">
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Genre with Autocomplete -->
+                        <div x-data="{ 
+                            query: '{{ form_data.genre_name|default:"" }}',
+                            selectedGenreId: '{{ form_data.genre|default:"" }}',
+                            genres: [
+                                {% for genre in genres %}
+                                { id: {{ genre.id }}, name: '{{ genre.name }}' },
+                                {% endfor %}
+                            ],
+                            showSuggestions: false,
+                            init() {
+                                if (this.selectedGenreId) {
+                                    const genre = this.genres.find(g => g.id == this.selectedGenreId);
+                                    if (genre) this.query = genre.name;
+                                }
+                            },
+                            filteredGenres() {
+                                return this.genres.filter(genre => 
+                                    genre.name.toLowerCase().includes(this.query.toLowerCase())
+                                );
+                            }
+                        }">
+                            <label for="genre" class="block text-sm font-medium text-gray-300 mb-2">Genre</label>
+                            <div class="relative">
+                                <input type="text"
+                                       id="genre_display"
+                                       x-model="query"
+                                       @focus="showSuggestions = true"
+                                       @blur="setTimeout(() => {
+                                           showSuggestions = false;
+                                           if (!selectedGenreId) {
+                                               query = '';
+                                           }
+                                       }, 200)"
+                                       required
+                                       class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200"
+                                       placeholder="e.g. Hip Hop, Trap, R&B">
+                                
+                                <!-- Hidden input for genre ID -->
+                                <input type="hidden"
+                                       name="genre"
+                                       x-model="selectedGenreId"
+                                       required>
+                                
+                                <!-- Genre Suggestions -->
+                                <div x-show="showSuggestions && filteredGenres().length > 0"
+                                     class="absolute z-10 w-full mt-1 bg-black/90 border border-white/10 rounded-xl shadow-xl backdrop-blur-xl">
+                                    <ul class="py-2">
+                                        <template x-for="genre in filteredGenres()" :key="genre.id">
+                                            <li>
+                                                <button type="button"
+                                                        @click="query = genre.name; selectedGenreId = genre.id; showSuggestions = false"
+                                                        class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                                                        x-text="genre.name">
+                                                </button>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                                
+                                <!-- No Results Message -->
+                                <div x-show="showSuggestions && query && !filteredGenres().length"
+                                     class="absolute z-10 w-full mt-1 p-4 text-center bg-black/90 border border-white/10 rounded-xl shadow-xl backdrop-blur-xl">
+                                    <p class="text-sm text-gray-400">No matching genres found</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tags -->
+                        <div x-data="{ 
+                            tags: [],
+                            newTag: '',
+                            addTag() {
+                                const tag = this.newTag.trim();
+                                if (tag && !this.tags.includes(tag)) {
+                                    this.tags.push(tag);
+                                    this.newTag = '';
+                                }
+                            },
+                            removeTag(index) {
+                                this.tags.splice(index, 1);
+                            }
+                        }" class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                            <div class="relative">
+                                <input type="text"
+                                       x-model="newTag"
+                                       @keydown.enter.prevent="addTag()"
+                                       class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200"
+                                       placeholder="Add tags and press Enter">
+                                <p class="text-xs text-gray-500 mt-1">Press Enter to add multiple tags</p>
+                                <input type="hidden" name="tags" x-bind:value="tags.join(',')">
+                            </div>
+                            <div class="flex flex-wrap gap-2 mt-3 min-h-[32px]">
                                 <template x-for="(tag, index) in tags" :key="index">
-                                    <span class="inline-flex items-center px-2 py-1 bg-blue-500 bg-opacity-10 text-blue-300 rounded-full text-xs">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-sm border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
                                         <span x-text="tag"></span>
-                                        <button type="button" @click="removeTag(index)" class="ml-1 text-blue-300 hover:text-blue-200">
+                                        <button type="button" 
+                                                @click="removeTag(index)" 
+                                                class="text-indigo-300 hover:text-indigo-200 transition-colors">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </span>
                                 </template>
-                                <input x-model="currentTag"
-                                       @keydown.space.prevent="addCurrentTag"
-                                       @keydown.enter.prevent="addCurrentTag"
-                                       @keydown.backspace="handleBackspace"
-                                       class="inline-flex flex-1 min-w-[60px] bg-transparent outline-none text-gray-300"
-                                       placeholder="Type a tag and press space">
                             </div>
-                            <input type="hidden" name="tags" x-model="tagsString" id="id_tags">
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column - Files -->
-                <div class="space-y-6">
-                    <!-- Audio File -->
-                    <div x-data="{ 
-                        fileName: '', 
-                        audioPreview: null,
-                        previewWavesurfer: null,
-                        isPlaying: false,
-                        currentTime: 0,
-                        duration: 0,
-                        
-                        init() {
-                            this.previewWavesurfer = WaveSurfer.create({
-                                container: '#preview-waveform',
-                                height: 64,
-                                waveColor: 'rgba(255, 255, 255, 0.2)',
-                                progressColor: 'rgba(99, 102, 241, 0.8)',
-                                cursorColor: 'rgba(255, 255, 255, 0.5)',
-                                barWidth: 2,
-                                barGap: 1,
-                                barRadius: 3,
-                                responsive: true,
-                                normalize: true,
-                                interact: true,
-                                hideScrollbar: true
-                            });
-                            
-                            this.previewWavesurfer.on('ready', () => {
-                                this.duration = this.previewWavesurfer.getDuration();
-                            });
-                            
-                            this.previewWavesurfer.on('audioprocess', (time) => {
-                                this.currentTime = time;
-                            });
-                            
-                            this.previewWavesurfer.on('finish', () => {
-                                this.isPlaying = false;
-                            });
-                        },
-                        
-                        togglePlay(event) {
-                            // Stop event propagation to prevent file dialog from opening
-                            event.stopPropagation();
-                            
-                            if (this.isPlaying) {
-                                this.previewWavesurfer.pause();
-                            } else {
-                                // Pause the persistent player if it's playing
-                                if (window.audioPlayer) {
-                                    window.audioPlayer.pause();
+                <!-- Media Files -->
+                <div class="glass-effect rounded-xl p-4 sm:p-8">
+                    <h2 class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                        <i class="fas" :class="{
+                            'fa-music': selectedType === 'beat',
+                            'fa-sync': selectedType === 'loop',
+                            'fa-drum': selectedType === 'soundkit',
+                            'fa-sliders-h': selectedType === 'preset'
+                        }"></i>
+                        <span x-text="selectedType === 'soundkit' ? 'Sound Files' : selectedType === 'preset' ? 'Preset Files' : 'Audio Files'"></span>
+                    </h2>
+                    
+                    <!-- Audio File Upload -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Audio File</label>
+                        <div class="relative border-2 border-dashed border-white/10 hover:border-indigo-500/50 rounded-xl p-6 transition-all duration-200"
+                             x-data="{ 
+                                isHovering: false,
+                                fileName: '',
+                                fileSelected: false,
+                                handleFile(event) {
+                                    const file = event.target.files?.[0] || (event.dataTransfer?.files?.[0]);
+                                    if (file) {
+                                        this.fileName = file.name;
+                                        this.fileSelected = true;
+                                        if (event.dataTransfer) {
+                                            this.$refs.audioInput.files = event.dataTransfer.files;
+                                        }
+                                    }
                                 }
-                                this.previewWavesurfer.play();
-                            }
-                            this.isPlaying = !this.isPlaying;
-                        },
-                        
-                        formatTime(seconds) {
-                            if (!seconds) return '0:00';
-                            const minutes = Math.floor(seconds / 60);
-                            const remainingSeconds = Math.floor(seconds % 60);
-                            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-                        }
-                    }">
-                        <label for="id_audio_file" class="block text-sm font-medium text-gray-300 mb-2">Audio File</label>
-                        <div class="mt-1 border-2 border-gray-700 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-200"
-                             :class="{ 'border-blue-500 bg-blue-500 bg-opacity-5': fileName, 'cursor-pointer': !fileName }"
-                             @click="if (!fileName) document.getElementById('id_audio_file').click()"
-                             @dragover.prevent="$el.classList.add('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
-                             @dragleave.prevent="$el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
-                             @drop.prevent="
-                                $el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
-                                const file = $event.dataTransfer.files[0];
-                                if (!file) return;
-                                if (!file.type.startsWith('audio/')) {
-                                    alert('Please upload an audio file');
-                                    return;
-                                }
-                                if (file.size > 10 * 1024 * 1024) {
-                                    alert('File size must be less than 10MB');
-                                    return;
-                                }
-                                const input = document.getElementById('id_audio_file');
-                                const dataTransfer = new DataTransfer();
-                                dataTransfer.items.add(file);
-                                input.files = dataTransfer.files;
-                                fileName = file.name;
-                                audioPreview = URL.createObjectURL(file);
-                                previewWavesurfer.load(audioPreview);
-                             ">
-                            <div class="flex flex-col items-center justify-center px-6 pt-5 pb-6 space-y-1 text-center w-full">
-                                <i class="fas fa-music text-4xl" :class="fileName ? 'text-blue-400' : 'text-gray-400'"></i>
-                                <div class="flex text-sm text-gray-400 justify-center">
-                                    <template x-if="!fileName">
-                                        <div>
-                                            <span class="text-blue-400 hover:text-blue-300">Upload a file</span>
-                                            <span class="pl-1">or drag and drop</span>
-                                        </div>
-                                    </template>
-                                    <template x-if="fileName">
-                                        <div class="text-blue-400" x-text="fileName"></div>
-                                    </template>
-                                </div>
-                                <p class="text-xs text-gray-500" x-show="!fileName">MP3, WAV up to 10MB</p>
-                                
-                                <div x-show="fileName" class="mt-2 w-full">
-                                    <div x-show="audioPreview" class="mt-3 bg-[#1E293B] bg-opacity-50 rounded-lg p-4">
-                                        <!-- Audio preview with waveform -->
-                                        <div class="space-y-4">
-                                            <div class="flex items-center gap-4">
-                                                <button @click="togglePlay($event)" 
-                                                        type="button"
-                                                        class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-500 hover:bg-indigo-600 transition-colors">
-                                                    <i class="fas" :class="isPlaying ? 'fa-pause' : 'fa-play'"></i>
-                                                </button>
-                                                
-                                                <div class="flex-1 space-y-2">
-                                                    <div class="flex justify-between text-xs text-gray-400">
-                                                        <span x-text="formatTime(currentTime)">0:00</span>
-                                                        <span x-text="formatTime(duration)">0:00</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div id="preview-waveform"></div>
-                                        </div>
-                                        <audio :src="audioPreview" class="hidden"></audio>
+                             }"
+                             x-bind:class="{
+                                'bg-indigo-500/5 border-indigo-500/50': isHovering,
+                                'bg-emerald-500/5 border-emerald-500/20': fileSelected && !isHovering,
+                                'bg-black/20': !isHovering && !fileSelected
+                             }"
+                             @dragover.prevent="isHovering = true"
+                             @dragleave.prevent="isHovering = false"
+                             @drop.prevent="isHovering = false; handleFile($event)">
+                            
+                            <input type="file" 
+                                   x-ref="audioInput"
+                                   name="audio_file" 
+                                   :accept="selectedType === 'soundkit' ? '.zip' : selectedType === 'preset' ? '.preset,.fxp,.adv,.adg,.fxb' : 'audio/*'"
+                                   required
+                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                   @change="handleFile($event)">
+                            
+                            <div class="text-center">
+                                <template x-if="!fileSelected">
+                                    <!-- Upload Icon -->
+                                    <div class="mb-4">
+                                        <i class="fas fa-cloud-upload-alt text-4xl" :class="isHovering ? 'text-indigo-400' : 'text-gray-400'"></i>
                                     </div>
+                                </template>
+                                
+                                <!-- File Information -->
+                                <div>
+                                    <template x-if="!fileSelected">
+                                        <div>
+                                            <p class="text-base mb-2">
+                                                <span class="text-indigo-400 font-medium">Choose a file</span>
+                                                <span class="text-gray-400">or drag and drop</span>
+                                            </p>
+                                            <p class="text-sm text-gray-500" x-text="selectedType === 'soundkit' ? 'ZIP up to 500MB' : selectedType === 'preset' ? 'Preset files up to 100MB' : 'MP3, WAV, AIFF up to 100MB'"></p>
+                                        </div>
+                                    </template>
+                                    <template x-if="fileSelected">
+                                        <div class="flex items-center justify-center gap-3">
+                                            <i class="fas fa-check-circle text-emerald-400"></i>
+                                            <span class="text-gray-300" x-text="fileName"></span>
+                                            <button type="button" 
+                                                    @click.stop="fileSelected = false; fileName = ''; $refs.audioInput.value = ''" 
+                                                    class="text-gray-400 hover:text-red-400 transition-colors">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
-                            <input id="id_audio_file" name="audio_file" type="file" class="hidden" accept="audio/*" required
-                                   @change="
-                                    const file = $event.target.files[0];
-                                    if (!file) return;
-                                    fileName = file.name;
-                                    audioPreview = URL.createObjectURL(file);
-                                    previewWavesurfer.load(audioPreview);
-                                   ">
                         </div>
                     </div>
 
-                    <!-- Cover Image -->
-                    <div x-data="{ fileName: '', imagePreview: null }">
-                        <label for="id_cover_image" class="block text-sm font-medium text-gray-300 mb-2">Cover Image</label>
-                        <div class="mt-1 border-2 border-gray-700 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-200 cursor-pointer"
-                             :class="{ 'border-blue-500 bg-blue-500 bg-opacity-5': fileName }"
-                             @click="document.getElementById('id_cover_image').click()"
-                             @dragover.prevent="$el.classList.add('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
-                             @dragleave.prevent="$el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5')"
-                             @drop.prevent="
-                                $el.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
-                                const file = $event.dataTransfer.files[0];
-                                if (!file) return;
-                                if (!file.type.startsWith('image/')) {
-                                    alert('Please upload an image file');
-                                    return;
+                    <!-- Cover Image Upload -->
+                    <div class="mt-8">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Cover Image</label>
+                        <div class="relative border-2 border-dashed border-white/10 hover:border-indigo-500/50 rounded-xl p-6 transition-all duration-200"
+                             x-data="{ 
+                                isHovering: false,
+                                fileName: '',
+                                fileSelected: false,
+                                previewUrl: '',
+                                handleFile(event) {
+                                    const file = event.target.files?.[0] || (event.dataTransfer?.files?.[0]);
+                                    if (file) {
+                                        this.fileName = file.name;
+                                        this.fileSelected = true;
+                                        this.previewUrl = URL.createObjectURL(file);
+                                        if (event.dataTransfer) {
+                                            this.$refs.imageInput.files = event.dataTransfer.files;
+                                        }
+                                    }
                                 }
-                                if (file.size > 2 * 1024 * 1024) {
-                                    alert('File size must be less than 2MB');
-                                    return;
-                                }
-                                const input = document.getElementById('id_cover_image');
-                                const dataTransfer = new DataTransfer();
-                                dataTransfer.items.add(file);
-                                input.files = dataTransfer.files;
-                                fileName = file.name;
-                                imagePreview = URL.createObjectURL(file);
-                             ">
-                            <div class="flex flex-col items-center justify-center px-6 pt-5 pb-6 space-y-1 text-center w-full">
-                                <template x-if="!imagePreview">
-                                    <i class="fas fa-image text-4xl" :class="fileName ? 'text-blue-400' : 'text-gray-400'"></i>
+                             }"
+                             x-bind:class="{
+                                'bg-indigo-500/5 border-indigo-500/50': isHovering,
+                                'bg-emerald-500/5 border-emerald-500/20': fileSelected && !isHovering,
+                                'bg-black/20': !isHovering && !fileSelected
+                             }"
+                             @dragover.prevent="isHovering = true"
+                             @dragleave.prevent="isHovering = false"
+                             @drop.prevent="isHovering = false; handleFile($event)">
+                            
+                            <input type="file" 
+                                   x-ref="imageInput"
+                                   name="cover_image" 
+                                   accept="image/*"
+                                   required
+                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                   @change="handleFile($event)">
+                            
+                            <div class="text-center">
+                                <template x-if="!fileSelected">
+                                    <!-- Upload Icon -->
+                                    <div class="mb-4">
+                                        <i class="fas fa-image text-4xl" :class="isHovering ? 'text-indigo-400' : 'text-gray-400'"></i>
+                                    </div>
                                 </template>
-                                <template x-if="imagePreview">
-                                    <img :src="imagePreview" class="mx-auto h-32 w-32 object-cover rounded-lg">
-                                </template>
-                                <div class="flex text-sm text-gray-400 justify-center">
-                                    <span class="text-blue-400 hover:text-blue-300">
-                                        <span x-text="fileName ? 'Change image' : 'Upload cover'"></span>
-                                    </span>
-                                    <p class="pl-1" x-show="!fileName">or drag and drop</p>
+                                
+                                <!-- File Information -->
+                                <div>
+                                    <template x-if="!fileSelected">
+                                        <div>
+                                            <p class="text-base mb-2">
+                                                <span class="text-indigo-400 font-medium">Choose an image</span>
+                                                <span class="text-gray-400">or drag and drop</span>
+                                            </p>
+                                            <p class="text-sm text-gray-500">PNG, JPG, WEBP up to 2MB</p>
+                                        </div>
+                                    </template>
+                                    <template x-if="fileSelected">
+                                        <div class="flex items-center justify-center gap-4">
+                                            <img :src="previewUrl" class="w-12 h-12 rounded object-cover" />
+                                            <span class="text-gray-300" x-text="fileName"></span>
+                                            <button type="button" 
+                                                    @click.stop="fileSelected = false; fileName = ''; previewUrl = ''; $refs.imageInput.value = ''" 
+                                                    class="text-gray-400 hover:text-red-400 transition-colors">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
-                                <p class="text-xs text-gray-500" x-show="!fileName">PNG, JPG up to 2MB</p>
-                                <p x-show="fileName" class="text-sm text-blue-400 mt-2" x-text="fileName"></p>
                             </div>
-                            <input id="id_cover_image" name="cover_image" type="file" class="hidden" accept="image/*"
-                                   @change="
-                                    const file = $event.target.files[0];
-                                    if (!file) return;
-                                    fileName = file.name;
-                                    imagePreview = URL.createObjectURL(file);
-                                   ">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Submit Button -->
-            <div class="mt-8">
-                <button type="submit" 
-                        :disabled="submitting"
-                        class="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span x-show="!submitting">Upload Beat</span>
-                    <span x-show="submitting" class="flex items-center justify-center">
-                        <i class="fas fa-spinner fa-spin mr-2"></i>
-                        Uploading...
-                    </span>
-                </button>
+            <!-- Upload Button -->
+            <div class="sticky bottom-4 sm:bottom-8 z-50">
+                <div class="glass-effect rounded-xl p-4 backdrop-blur-xl">
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-lg font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-3 hover:scale-[1.02] focus:ring-4 focus:ring-indigo-500/50 focus:outline-none shadow-xl shadow-indigo-500/20 py-4 px-6 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-400/0 via-indigo-400/10 to-indigo-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        <i class="fas fa-cloud-upload-alt text-xl"></i>
+                        <span x-text="'Share ' + selectedType.charAt(0).toUpperCase() + selectedType.slice(1)">Share Beat</span>
+                        <span class="absolute right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </button>
+                    <p class="text-center text-sm text-gray-400 mt-3">
+                    </p>
+                </div>
             </div>
         </form>
     </div>
 </div>
-
-<script>
-    function tagInput(initialTags = '') {
-        return {
-            tags: initialTags ? initialTags.split(' ').filter(tag => tag.length > 0) : [],
-            currentTag: '',
-            get tagsString() {
-                return this.tags.join(' ');
-            },
-            addCurrentTag() {
-                const tag = this.currentTag.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-                if (tag && !this.tags.includes(tag)) {
-                    this.tags.push(tag);
-                }
-                this.currentTag = '';
-            },
-            removeTag(index) {
-                this.tags.splice(index, 1);
-            },
-            handleBackspace(e) {
-                if (this.currentTag === '' && this.tags.length > 0) {
-                    this.removeTag(this.tags.length - 1);
-                }
-            }
-        }
-    }
-
-    // Initialize drag and drop functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const audioDropzone = document.querySelector('#id_audio_file').closest('div');
-        const imageDropzone = document.querySelector('#id_cover_image').closest('div');
-
-        // Add animation class when playing
-        const waveformContainer = document.querySelector('#preview-waveform wave');
-        if (waveformContainer) {
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.target.classList.contains('playing')) {
-                        waveformContainer.classList.add('playing');
-                    } else {
-                        waveformContainer.classList.remove('playing');
-                    }
-                });
-            });
-
-            observer.observe(waveformContainer, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.classList.add('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
-        }
-
-        function handleDragLeave(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!this.contains(e.relatedTarget)) {
-                this.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
-            }
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.classList.remove('border-blue-500', 'bg-blue-500', 'bg-opacity-5');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const fileInput = this.querySelector('input[type="file"]');
-                const file = files[0];
-
-                // Check file type
-                if (fileInput.id === 'id_audio_file' && !file.type.startsWith('audio/')) {
-                    alert('Please upload an audio file');
-                    return;
-                }
-                if (fileInput.id === 'id_cover_image' && !file.type.startsWith('image/')) {
-                    alert('Please upload an image file');
-                    return;
-                }
-
-                // Check file size
-                const maxSize = fileInput.id === 'id_audio_file' ? 10 * 1024 * 1024 : 2 * 1024 * 1024; // 10MB for audio, 2MB for images
-                if (file.size > maxSize) {
-                    alert(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
-                    return;
-                }
-
-                // Create a new FileList object
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
-
-                // Trigger change event
-                const event = new Event('change', { bubbles: true });
-                fileInput.dispatchEvent(event);
-            }
-        }
-
-        // Add event listeners to audio dropzone
-        audioDropzone.addEventListener('dragover', handleDragOver);
-        audioDropzone.addEventListener('dragleave', handleDragLeave);
-        audioDropzone.addEventListener('drop', handleDrop);
-
-        // Add event listeners to image dropzone
-        imageDropzone.addEventListener('dragover', handleDragOver);
-        imageDropzone.addEventListener('dragleave', handleDragLeave);
-        imageDropzone.addEventListener('drop', handleDrop);
-    });
-</script>
 {% endblock %} 

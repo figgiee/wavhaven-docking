@@ -6,21 +6,16 @@
         track: {
             id: {{ beat.id }},
             title: '{{ beat.title|escapejs }}',
-            producer: '{{ beat.producer.username|escapejs }}',
-            audioUrl: '{{ beat.audio_file.url|escapejs }}',
+            artist: '{{ beat.producer.username|escapejs }}',
+            audioUrl: '{{ beat.audio_file.url|default:""|escapejs }}',
             coverImage: '{{ beat.get_cover_image_url|escapejs }}'
-        },
-        playTrack() {
-            this.$dispatch('play-track', this.track);
         }
      }"
      @playstate-changed.window="isPlaying = ($event.detail.trackId === track.id && $event.detail.isPlaying)"
-     data-beat-id="{{ beat.id }}"
      class="cursor-pointer group">
-    {% csrf_token %}
     
     <!-- Beat Image and Play Button -->
-    <div class="aspect-square relative overflow-hidden group">
+    <div class="aspect-square relative overflow-hidden">
         <div class="image-container w-full h-full transition-transform duration-300 group-hover:scale-105">
             <img src="{{ beat.get_cover_image_url }}" 
                  alt="{{ beat.title }}" 
@@ -29,7 +24,7 @@
         
         <!-- Play Button Overlay -->
         {% if beat.audio_file %}
-        <button @click.stop="playTrack()"
+        <button @click.stop="$dispatch('play-track', track)"
                 class="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all duration-300">
             <div class="play-button w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center transform transition-all duration-300"
                  :class="{ 'scale-95 bg-indigo-500/20': isPlaying, 'hover:scale-110': !isPlaying }">

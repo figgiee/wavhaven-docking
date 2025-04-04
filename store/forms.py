@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import Beat, UserProfile
+from taggit.forms import TagField
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(
@@ -23,9 +24,17 @@ class RegisterForm(UserCreationForm):
         return email
 
 class BeatForm(forms.ModelForm):
+    tags = TagField(
+        required=False,
+        help_text='Enter tags separated by commas'
+    )
+    
     class Meta:
         model = Beat
-        fields = ['title', 'price', 'audio_file', 'tags']
+        fields = ['title', 'price', 'audio_file', 'cover_image', 'genre', 'bpm', 'key', 'tags', 'type', 'status']
+        widgets = {
+            'tags': forms.TextInput(attrs={'class': 'tag-input', 'placeholder': 'Enter tags separated by commas'})
+        }
 
 class UserForm(forms.ModelForm):
     class Meta:

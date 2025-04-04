@@ -1,0 +1,26 @@
+{% load static %}
+
+<!-- Vignette Effect Container -->
+<div x-data="vignette" 
+     x-init="initVignette()"
+     class="vignette-container relative w-full h-full">
+    
+    <!-- Vignette Canvas -->
+    <canvas x-ref="canvas"
+            class="absolute inset-0 w-full h-full pointer-events-none z-10"
+            style="mix-blend-mode: multiply;"></canvas>
+    
+    <!-- Content goes here -->
+    <div class="relative z-0">
+        <slot></slot>
+    </div>
+</div>
+
+<!-- Include the Vignette component script -->
+<script src="{% static 'store/components/Vignette.jsx' %}"></script>
+
+<style>
+.vignette-container {
+    isolation: isolate;
+}
+</style> 

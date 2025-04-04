@@ -1,0 +1,164 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+                Producer FAQ
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                Everything you need to know about selling your sounds on WavHaven
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="space-y-6" x-data="{ activeTab: null }">
+            <!-- Getting Started -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'getting-started' ? null : 'getting-started'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Getting Started</h3>
+                    <i class="fas" :class="activeTab === 'getting-started' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'getting-started'" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">To start selling on WavHaven:</p>
+                        <ol class="list-decimal list-inside text-gray-300 space-y-2">
+                            <li>Create your WavHaven account</li>
+                            <li>Complete your producer profile</li>
+                            <li>Upload your first sound</li>
+                            <li>Set your pricing and licensing terms</li>
+                            <li>Start promoting your content</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Guidelines -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'upload' ? null : 'upload'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Upload Guidelines</h3>
+                    <i class="fas" :class="activeTab === 'upload' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'upload'"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">File requirements:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Beats/Loops: WAV, MP3, or AIFF format</li>
+                            <li>Minimum quality: 44.1kHz, 16-bit</li>
+                            <li>Maximum file size: 100MB for beats, 50MB for loops</li>
+                            <li>Soundkits: ZIP files up to 500MB</li>
+                            <li>All content must be original or properly licensed</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing & Revenue -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'pricing' ? null : 'pricing'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Pricing & Revenue</h3>
+                    <i class="fas" :class="activeTab === 'pricing' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'pricing'"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Revenue sharing and pricing information:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>You keep 80% of each sale</li>
+                            <li>Payments processed securely through Stripe</li>
+                            <li>Set your own prices within platform guidelines</li>
+                            <li>Monthly payouts for balances over $50</li>
+                            <li>Transparent sales analytics and reporting</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Licensing Terms -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'licensing' ? null : 'licensing'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Licensing Terms</h3>
+                    <i class="fas" :class="activeTab === 'licensing' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'licensing'"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Standard licensing options:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Basic License: Personal/Non-Profit Use</li>
+                            <li>Premium License: Commercial Use</li>
+                            <li>Exclusive Rights: Full ownership transfer</li>
+                            <li>Custom licensing available for special cases</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promotion & Growth -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'promotion' ? null : 'promotion'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Promotion & Growth</h3>
+                    <i class="fas" :class="activeTab === 'promotion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'promotion'"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Tips for growing your presence:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Optimize your profile and sound descriptions</li>
+                            <li>Use relevant tags for better discoverability</li>
+                            <li>Share your WavHaven profile on social media</li>
+                            <li>Engage with the community and collaborate</li>
+                            <li>Maintain consistent upload schedule</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Still Have Questions -->
+<section class="py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-white">Still Have Questions?</h2>
+        <p class="text-gray-300 mb-8">
+            Our support team is here to help you succeed on WavHaven.
+        </p>
+        <a href="mailto:support@wavhaven.com" 
+           class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25">
+            <i class="fas fa-envelope mr-2"></i>
+            Contact Support
+        </a>
+    </div>
+</section>
+{% endblock %} 

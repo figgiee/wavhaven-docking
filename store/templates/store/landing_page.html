@@ -21,23 +21,25 @@
 
         <!-- Search Bar -->
         <div class="max-w-2xl mx-auto mb-12">
-            <form action="{% url 'store:search' %}" method="GET" class="relative">
-                <input type="text" 
-                       name="q" 
-                       id="searchInput"
-                       placeholder="Search" 
-                       class="w-full px-8 py-5 text-lg text-white bg-white/5 backdrop-blur-xl border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400 shadow-xl">
-                <span id="typingText" class="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center">
-                    <span class="typing-text"></span><span class="typing-cursor">|</span>
-                </span>
-                <button type="submit" class="absolute right-6 top-1/2 -translate-y-1/2">
-                    <i class="fas fa-search text-gray-400 text-xl"></i>
-                </button>
+            <form action="{% url 'store:explore' %}" method="GET" class="relative" x-data="{ selectedType: 'all' }">
+                <div class="relative">
+                    <input type="text" 
+                           name="q" 
+                           id="searchInput"
+                           placeholder="Search" 
+                           class="w-full px-8 py-5 text-lg text-white bg-white/5 backdrop-blur-xl border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400 shadow-xl">
+                    <span id="typingText" class="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center">
+                        <span class="typing-text"></span><span class="typing-cursor">|</span>
+                    </span>
+                    <button type="submit" class="absolute right-6 top-1/2 -translate-y-1/2">
+                        <i class="fas fa-search text-gray-400 text-xl"></i>
+                    </button>
+                </div>
             </form>
         </div>
 
         <!-- CTA Button -->
-        <a href="{% url 'store:explore_beats' %}" 
+        <a href="{% url 'store:explore' %}?type=beat" 
            class="inline-flex items-center px-12 py-4 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 transform hover:scale-105">
             Explore Now
         </a>
@@ -54,7 +56,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between mb-12">
             <h2 class="text-4xl font-bold text-white">Featured Beats</h2>
-            <a href="{% url 'store:explore_beats' %}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
+            <a href="{% url 'store:explore' %}?type=beat" class="text-indigo-400 hover:text-indigo-300 transition-colors">
                 View All →
             </a>
         </div>
@@ -261,7 +263,7 @@
         <p class="text-xl text-gray-200 mb-8 text-shadow">Join thousands of producers and artists on WavHaven</p>
         
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="{% url 'store:explore_beats' %}" 
+            <a href="{% url 'store:explore' %}?type=beat" 
                class="inline-flex items-center px-8 py-4 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 backdrop-blur-sm">
                 Start Exploring
             </a>
@@ -458,10 +460,8 @@ document.addEventListener('play-track', function() {
                     <h3 class="text-xl font-medium text-white/80">WAVHaven</h3>
                 </div>
                 <ul class="space-y-2">
-                    <li><a href="{% url 'store:explore_beats' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Explore</a></li>
-                    <li><a href="{% url 'store:genres' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Genres</a></li>
+                    <li><a href="{% url 'store:explore' %}?type=beat" class="text-white/50 hover:text-white/90 transition-colors text-sm">Explore</a></li>
                     <li><a href="/about" class="text-white/50 hover:text-white/90 transition-colors text-sm">About Us</a></li>
-                    <li><a href="/blog" class="text-white/50 hover:text-white/90 transition-colors text-sm">Blog</a></li>
                 </ul>
             </div>
 
@@ -470,9 +470,8 @@ document.addEventListener('play-track', function() {
                 <h4 class="text-sm font-medium text-white/70 mb-6 uppercase tracking-wider">For Producers</h4>
                 <ul class="space-y-2">
                     <li><a href="{% url 'store:beat_upload' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Start Selling</a></li>
-                    <li><a href="/producer-faq" class="text-white/50 hover:text-white/90 transition-colors text-sm">Producer FAQ</a></li>
-                    <li><a href="/submission-guidelines" class="text-white/50 hover:text-white/90 transition-colors text-sm">Submission Guidelines</a></li>
-                    <li><a href="/producer-resources" class="text-white/50 hover:text-white/90 transition-colors text-sm">Producer Resources</a></li>
+                    <li><a href="{% url 'store:producer_faq' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Producer FAQ</a></li>
+                    <li><a href="{% url 'store:submission_guidelines' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Submission Guidelines</a></li>
                 </ul>
             </div>
 
@@ -480,10 +479,10 @@ document.addEventListener('play-track', function() {
             <div>
                 <h4 class="text-sm font-medium text-white/70 mb-6 uppercase tracking-wider">For Customers</h4>
                 <ul class="space-y-2">
-                    <li><a href="/faq" class="text-white/50 hover:text-white/90 transition-colors text-sm">Customer FAQ</a></li>
-                    <li><a href="/licensing" class="text-white/50 hover:text-white/90 transition-colors text-sm">Licensing Information</a></li>
-                    <li><a href="/support" class="text-white/50 hover:text-white/90 transition-colors text-sm">Contact Support</a></li>
-                    <li><a href="/returns" class="text-white/50 hover:text-white/90 transition-colors text-sm">Returns & Refunds</a></li>
+                    <li><a href="{% url 'store:customer_faq' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Customer FAQ</a></li>
+                    <li><a href="{% url 'store:licensing' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Licensing Information</a></li>
+                    <li><a href="{% url 'store:support' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Contact Support</a></li>
+                    <li><a href="{% url 'store:returns' %}" class="text-white/50 hover:text-white/90 transition-colors text-sm">Returns & Refunds</a></li>
                 </ul>
             </div>
 
@@ -545,9 +544,9 @@ document.addEventListener('play-track', function() {
             <div class="text-center">
                 <p class="text-white/40 text-xs mb-4">&copy; {% now "Y" %} WAVHaven. All rights reserved.</p>
                 <ul class="flex flex-wrap justify-center gap-6 text-xs">
-                    <li><a href="/terms" class="text-white/40 hover:text-white/60 transition-colors">Terms of Service</a></li>
-                    <li><a href="/privacy" class="text-white/40 hover:text-white/60 transition-colors">Privacy Policy</a></li>
-                    <li><a href="/cookie" class="text-white/40 hover:text-white/60 transition-colors">Cookie Policy</a></li>
+                    <li><a href="{% url 'store:terms' %}" class="text-white/40 hover:text-white/60 transition-colors">Terms of Service</a></li>
+                    <li><a href="{% url 'store:privacy' %}" class="text-white/40 hover:text-white/60 transition-colors">Privacy Policy</a></li>
+                    <li><a href="{% url 'store:cookie' %}" class="text-white/40 hover:text-white/60 transition-colors">Cookie Policy</a></li>
                 </ul>
             </div>
         </div>

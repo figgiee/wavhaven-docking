@@ -90,144 +90,143 @@
     </div>
 
     <!-- Uploads Tab -->
-    <div x-show="activeTab === 'uploads'" class="space-y-6">
-        <!-- Filters and Search -->
-        <div class="flex flex-wrap gap-4 items-center justify-between mb-6">
-            <div class="flex gap-4 items-center">
-                <div class="relative">
+    <div x-show="activeTab === 'uploads'" class="glass-effect rounded-xl overflow-hidden">
+        <!-- Search and Filter Bar -->
+        <div class="p-4 border-b border-gray-800">
+            <div class="flex flex-wrap gap-4">
+                <div class="flex-1">
                     <input type="text" 
                            x-model="searchQuery" 
-                           placeholder="Search beats..."
-                           class="bg-gray-800 text-white rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                           placeholder="Search your beats..."
+                           class="w-full px-4 py-2 bg-black/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <select x-model="filterStatus"
-                        class="bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                    <option value="archived">Archived</option>
-                </select>
+                <div class="flex items-center gap-4">
+                    <select x-model="filterStatus"
+                            class="px-4 py-2 bg-black/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="draft">Draft</option>
+                        <option value="hidden">Hidden</option>
+                    </select>
+                    <a href="{% url 'store:beat_upload' %}" 
+                       class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                        Upload New
+                    </a>
+                </div>
             </div>
-            <a href="{% url 'store:beat_upload' %}" class="nav-button primary">
-                <i class="fas fa-plus mr-2"></i>
-                Upload New Beat
-            </a>
         </div>
 
         <!-- Beats Table -->
-        <div class="glass-effect rounded-xl overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="text-left text-gray-400 border-b border-gray-700">
-                            <th class="p-4">
-                                <button @click="sortField = 'title'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                                        class="flex items-center gap-2">
-                                    Title
-                                    <i class="fas" :class="{
-                                        'fa-sort': sortField !== 'title',
-                                        'fa-sort-up': sortField === 'title' && sortOrder === 'asc',
-                                        'fa-sort-down': sortField === 'title' && sortOrder === 'desc'
-                                    }"></i>
-                                </button>
-                            </th>
-                            <th class="p-4">
-                                <button @click="sortField = 'price'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                                        class="flex items-center gap-2">
-                                    Price
-                                    <i class="fas" :class="{
-                                        'fa-sort': sortField !== 'price',
-                                        'fa-sort-up': sortField === 'price' && sortOrder === 'asc',
-                                        'fa-sort-down': sortField === 'price' && sortOrder === 'desc'
-                                    }"></i>
-                                </button>
-                            </th>
-                            <th class="p-4">
-                                <button @click="sortField = 'sales'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                                        class="flex items-center gap-2">
-                                    Sales
-                                    <i class="fas" :class="{
-                                        'fa-sort': sortField !== 'sales',
-                                        'fa-sort-up': sortField === 'sales' && sortOrder === 'asc',
-                                        'fa-sort-down': sortField === 'sales' && sortOrder === 'desc'
-                                    }"></i>
-                                </button>
-                            </th>
-                            <th class="p-4">
-                                <button @click="sortField = 'plays'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                                        class="flex items-center gap-2">
-                                    Plays
-                                    <i class="fas" :class="{
-                                        'fa-sort': sortField !== 'plays',
-                                        'fa-sort-up': sortField === 'plays' && sortOrder === 'asc',
-                                        'fa-sort-down': sortField === 'plays' && sortOrder === 'desc'
-                                    }"></i>
-                                </button>
-                            </th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for beat in beats %}
-                        <tr class="border-b border-gray-800 text-gray-300">
-                            <td class="p-4">
-                                <div class="flex items-center gap-3">
-                                    <a href="{% url 'store:beat_detail' beat.pk %}" class="block hover:opacity-75 transition-opacity">
-                                        <img src="{{ beat.get_cover_image_url }}" alt="{{ beat.title }}" class="w-10 h-10 rounded object-cover">
-                                    </a>
-                                    <div>
-                                        <a href="{% url 'store:beat_detail' beat.pk %}" class="block group">
-                                            <div class="font-medium text-white group-hover:text-indigo-400 transition-colors">{{ beat.title }}</div>
-                                            <div class="text-sm text-gray-400">{{ beat.created_at|date }}</div>
-                                        </a>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="p-4">${{ beat.price }}</td>
-                            <td class="p-4">{{ beat.sales_count }}</td>
-                            <td class="p-4">{{ beat.play_count }}</td>
-                            <td class="p-4">
-                                <span class="px-2 py-1 text-xs rounded-full {% if beat.status == 'active' %}bg-green-500/20 text-green-400{% elif beat.status == 'draft' %}bg-yellow-500/20 text-yellow-400{% else %}bg-gray-500/20 text-gray-400{% endif %}">
-                                    {{ beat.status|title }}
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <div class="flex items-center gap-2">
-                                    <a href="{% url 'store:beat_edit' beat.pk %}" class="p-2 text-gray-400 hover:text-white transition-colors">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button class="p-2 text-gray-400 hover:text-white transition-colors">
-                                        <i class="fas fa-chart-bar"></i>
-                                    </button>
-                                    <button @click="confirmDelete({{ beat.pk }}, '{{ beat.title|escapejs }}')"
-                                            class="p-2 text-red-400 hover:text-red-300 transition-colors">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="p-4 text-center text-gray-400">
-                                <div class="flex flex-col items-center py-8">
-                                    <i class="fas fa-music text-4xl mb-4"></i>
-                                    <p>You haven't uploaded any beats yet.</p>
-                                    <a href="{% url 'store:beat_upload' %}" class="mt-4 text-indigo-400 hover:text-indigo-300">
-                                        Upload your first beat →
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left text-gray-400 text-sm">
+                        <th class="p-4">
+                            <button @click="sortField = 'title'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                                    class="flex items-center gap-2">
+                                Title
+                                <i class="fas" :class="{
+                                    'fa-sort': sortField !== 'title',
+                                    'fa-sort-up': sortField === 'title' && sortOrder === 'asc',
+                                    'fa-sort-down': sortField === 'title' && sortOrder === 'desc'
+                                }"></i>
+                            </button>
+                        </th>
+                        <th class="p-4">
+                            <button @click="sortField = 'price'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                                    class="flex items-center gap-2">
+                                Price
+                                <i class="fas" :class="{
+                                    'fa-sort': sortField !== 'price',
+                                    'fa-sort-up': sortField === 'price' && sortOrder === 'asc',
+                                    'fa-sort-down': sortField === 'price' && sortOrder === 'desc'
+                                }"></i>
+                            </button>
+                        </th>
+                        <th class="p-4">
+                            <button @click="sortField = 'sales'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                                    class="flex items-center gap-2">
+                                Sales
+                                <i class="fas" :class="{
+                                    'fa-sort': sortField !== 'sales',
+                                    'fa-sort-up': sortField === 'sales' && sortOrder === 'asc',
+                                    'fa-sort-down': sortField === 'sales' && sortOrder === 'desc'
+                                }"></i>
+                            </button>
+                        </th>
+                        <th class="p-4">
+                            <button @click="sortField = 'plays'; sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                                    class="flex items-center gap-2">
+                                Plays
+                                <i class="fas" :class="{
+                                    'fa-sort': sortField !== 'plays',
+                                    'fa-sort-up': sortField === 'plays' && sortOrder === 'asc',
+                                    'fa-sort-down': sortField === 'plays' && sortOrder === 'desc'
+                                }"></i>
+                            </button>
+                        </th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for beat in beats %}
+                    <tr class="border-b border-gray-800 text-gray-300">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <a href="{% url 'store:beat_detail' beat.pk %}" class="block hover:opacity-75 transition-opacity">
+                                    <img src="{{ beat.get_cover_image_url }}" alt="{{ beat.title }}" class="w-10 h-10 rounded object-cover">
+                                </a>
+                                <div>
+                                    <a href="{% url 'store:beat_detail' beat.pk %}" class="block group">
+                                        <div class="font-medium text-white group-hover:text-indigo-400 transition-colors">{{ beat.title }}</div>
+                                        <div class="text-sm text-gray-400">{{ beat.created_at|date }}</div>
                                     </a>
                                 </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                        </td>
+                        <td class="p-4">${{ beat.price }}</td>
+                        <td class="p-4">{{ beat.sales_count|default:"0" }}</td>
+                        <td class="p-4">{{ beat.play_count|default:"0" }}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 text-xs rounded-full {% if beat.status == 'active' %}bg-green-500/20 text-green-400{% elif beat.status == 'draft' %}bg-yellow-500/20 text-yellow-400{% else %}bg-gray-500/20 text-gray-400{% endif %}">
+                                {{ beat.status|title }}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'store:beat_edit' beat.pk %}" 
+                                   class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button @click="confirmDelete({{ beat.pk }}, '{{ beat.title|escapejs }}')"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-red-500/20 transition-colors text-gray-400 hover:text-red-400">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-gray-400">
+                            <div class="max-w-sm mx-auto">
+                                <i class="fas fa-music text-6xl mb-4"></i>
+                                <h3 class="text-xl font-medium text-white mb-2">No Beats Yet</h3>
+                                <p class="mb-6">Start sharing your music with the world!</p>
+                                <a href="{% url 'store:beat_upload' %}" 
+                                   class="inline-block px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                                    Upload Your First Beat
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Purchases Tab (Placeholder) -->
+    <!-- Purchases Tab -->
     <div x-show="activeTab === 'purchases'" class="glass-effect rounded-xl p-8 text-center">
         <i class="fas fa-shopping-bag text-6xl text-gray-600 mb-4"></i>
         <h3 class="text-xl font-medium text-white mb-2">My Purchases</h3>
@@ -235,7 +234,7 @@
         <p class="text-sm text-gray-500">This feature is coming soon!</p>
     </div>
 
-    <!-- Analytics Tab (Placeholder) -->
+    <!-- Analytics Tab -->
     <div x-show="activeTab === 'analytics'" class="glass-effect rounded-xl p-8 text-center">
         <i class="fas fa-chart-line text-6xl text-gray-600 mb-4"></i>
         <h3 class="text-xl font-medium text-white mb-2">Sales & Analytics</h3>
@@ -263,50 +262,27 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div x-show="showDeleteModal"
+    <div x-show="showDeleteModal" 
+         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
          x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-90"
-         x-transition:enter-end="opacity-100 transform scale-100"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-90"
-         @keydown.escape.window="showDeleteModal = false"
-         class="fixed inset-0 z-50 overflow-y-auto"
-         style="display: none;">
-        
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
-             x-show="showDeleteModal"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             @click="showDeleteModal = false"></div>
-        
-        <!-- Modal Content -->
-        <div class="relative min-h-screen flex items-center justify-center p-4">
-            <div class="relative bg-gray-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-white/10"
-                 @click.away="showDeleteModal = false">
-                
-                <h3 class="text-xl font-semibold text-white mb-4">Delete Beat</h3>
-                
-                <p class="text-gray-300 mb-6">
-                    Are you sure you want to delete "<span x-text="deleteTitle"></span>"? 
-                    This action cannot be undone.
-                </p>
-                
-                <div class="flex justify-end gap-4">
-                    <button @click="showDeleteModal = false"
-                            class="px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors">
-                        Cancel
-                    </button>
-                    <button @click="handleDelete()"
-                            class="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">
-                        Delete Beat
-                    </button>
-                </div>
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        <div class="bg-gray-900 rounded-xl p-6 max-w-md w-full mx-4"
+             @click.away="showDeleteModal = false">
+            <h3 class="text-xl font-bold text-white mb-4">Delete Beat</h3>
+            <p class="text-gray-400 mb-6">Are you sure you want to delete "<span x-text="deleteTitle"></span>"? This action cannot be undone.</p>
+            <div class="flex justify-end gap-4">
+                <button @click="showDeleteModal = false"
+                        class="px-4 py-2 text-gray-400 hover:text-white transition-colors">
+                    Cancel
+                </button>
+                <button @click="handleDelete"
+                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                    Delete
+                </button>
             </div>
         </div>
     </div>

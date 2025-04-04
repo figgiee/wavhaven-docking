@@ -4,6 +4,9 @@ from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from taggit.managers import TaggableManager
+from django.db.models import Count
+from taggit.models import Tag
 
 
 class Genre(models.Model):
@@ -53,7 +56,7 @@ class Beat(models.Model):
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True)
     bpm = models.IntegerField(null=True, blank=True)
     key = models.CharField(max_length=50, blank=True)
-    tags = models.CharField(max_length=255, blank=True)
+    tags = TaggableManager(blank=True)
     type = models.CharField(max_length=20, choices=CONTENT_TYPES, default='beat')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -80,6 +83,71 @@ class Beat(models.Model):
         if self.audio_file and self.audio_file.url:
             return self.audio_file.url
         return None
+
+    def get_similar_beats(self, limit=5):
+        """Get beats that share tags with this beat.
+        
+        Args:
+            limit: Maximum number of similar beats to return.
+            
+        Returns:
+            QuerySet of Beat objects that share tags with this beat.
+        """
+        return Beat.objects.filter(
+            tags__name__in=self.tags.names()
+        ).exclude(
+            id=self.id
+        ).distinct()[:limit]
+    
+    def get_tag_list(self):
+        """Get a list of tag names.
+        
+        Returns:
+            List of strings representing tag names.
+        """
+        return list(self.tags.names())
+    
+    def get_tag_cloud(self):
+        """Get tag usage statistics for this beat's tags.
+        
+        Returns:
+            List of dictionaries containing tag name and usage count.
+        """
+        return Tag.objects.filter(
+            name__in=self.tags.names()
+        ).annotate(
+            count=Count('taggit_taggeditem_items')
+        ).values('name', 'count')
+    
+    @staticmethod
+    def get_popular_tags(limit=10):
+        """Get the most popular tags across all beats.
+        
+        Args:
+            limit: Maximum number of tags to return.
+            
+        Returns:
+            QuerySet of Tag objects with their usage count.
+        """
+        return Tag.objects.annotate(
+            count=Count('taggit_taggeditem_items')
+        ).order_by('-count')[:limit]
+    
+    @staticmethod
+    def search_by_tags(tags, exclude_ids=None):
+        """Search for beats by tags.
+        
+        Args:
+            tags: List of tag names to search for.
+            exclude_ids: Optional list of beat IDs to exclude.
+            
+        Returns:
+            QuerySet of Beat objects that match the tags.
+        """
+        queryset = Beat.objects.filter(tags__name__in=tags).distinct()
+        if exclude_ids:
+            queryset = queryset.exclude(id__in=exclude_ids)
+        return queryset
 
 
 class Cart(models.Model):

@@ -1,0 +1,141 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+                Submission Guidelines
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                Quality standards and requirements for content submission on WavHaven
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Guidelines Section -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="space-y-12">
+            <!-- Audio Quality Standards -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Audio Quality Standards</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-2">Minimum Requirements</h3>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Sample Rate: 44.1kHz or higher</li>
+                            <li>Bit Depth: 16-bit minimum, 24-bit recommended</li>
+                            <li>Format: WAV, AIFF, or high-quality MP3 (320kbps)</li>
+                            <li>No clipping or distortion</li>
+                            <li>Clean mix with proper headroom</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Types -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Content Types & Specifications</h2>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-2">Beats</h3>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Full length: 2-4 minutes recommended</li>
+                            <li>Maximum file size: 100MB</li>
+                            <li>Must include BPM and key information</li>
+                            <li>Clear song structure</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-2">Loops</h3>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Perfect loop points required</li>
+                            <li>Maximum file size: 50MB</li>
+                            <li>Common lengths: 2, 4, or 8 bars</li>
+                            <li>Must be royalty-free</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-2">Sound Kits</h3>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Organized folder structure</li>
+                            <li>Maximum size: 500MB</li>
+                            <li>Clear labeling of all sounds</li>
+                            <li>README file with kit information</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-2">Presets</h3>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Supported plugin formats only</li>
+                            <li>Version compatibility noted</li>
+                            <li>Demo audio required</li>
+                            <li>Installation instructions included</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata Requirements -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Metadata Requirements</h2>
+                <ul class="list-disc list-inside text-gray-300 space-y-2">
+                    <li>Descriptive title that accurately represents the content</li>
+                    <li>Appropriate genre tags</li>
+                    <li>Mood and style tags</li>
+                    <li>Key musical elements noted (instruments, effects, etc.)</li>
+                    <li>Clear description of included files and formats</li>
+                </ul>
+            </div>
+
+            <!-- Content Restrictions -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Content Restrictions</h2>
+                <ul class="list-disc list-inside text-gray-300 space-y-2">
+                    <li>No copyrighted material without proper licensing</li>
+                    <li>No samples from other artists without permission</li>
+                    <li>No offensive or inappropriate content</li>
+                    <li>No low-quality or unfinished work</li>
+                    <li>No repackaged or duplicate content</li>
+                </ul>
+            </div>
+
+            <!-- Cover Art Requirements -->
+            <div class="glass-effect rounded-xl p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Cover Art Requirements</h2>
+                <ul class="list-disc list-inside text-gray-300 space-y-2">
+                    <li>Minimum size: 1000x1000 pixels</li>
+                    <li>Maximum size: 2MB</li>
+                    <li>Formats: JPG, PNG, or WEBP</li>
+                    <li>Professional quality and relevant to content</li>
+                    <li>No explicit or offensive imagery</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Submission Process -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-white">Ready to Submit?</h2>
+        <p class="text-gray-300 mb-8">
+            Make sure your content meets all guidelines before submission.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'store:beat_upload' %}" 
+               class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25">
+                Upload Content
+            </a>
+            <a href="{% url 'store:producer_faq' %}" 
+               class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-white/10 rounded-full hover:bg-white/20 transition-all duration-200">
+                Read Producer FAQ
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %} 

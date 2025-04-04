@@ -1,0 +1,442 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Checkout - WavHaven{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl" 
+     x-data="{
+        paymentMethod: 'card',
+        loading: false,
+        processingStep: '',
+        processingSteps: {
+            validating: 'Validating payment details...',
+            processing: 'Processing payment...',
+            finalizing: 'Finalizing your order...'
+        },
+        errorMessage: '',
+        showError: false,
+        cardNumber: '',
+        cardExpiry: '',
+        cardCvc: '',
+        cardError: '',
+        expiryError: '',
+        cvcError: '',
+        formatCardNumber(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 16) value = value.slice(0, 16);
+            const parts = [];
+            for (let i = 0; i < value.length; i += 4) {
+                parts.push(value.slice(i, i + 4));
+            }
+            this.cardNumber = parts.join(' ');
+            this.validateCard();
+        },
+        formatExpiry(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 4) value = value.slice(0, 4);
+            if (value.length > 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2);
+            }
+            this.cardExpiry = value;
+            this.validateExpiry();
+        },
+        formatCvc(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 4) value = value.slice(0, 4);
+            this.cardCvc = value;
+            this.validateCvc();
+        },
+        validateCard() {
+            if (!this.cardNumber) {
+                this.cardError = 'Card number is required';
+                return false;
+            }
+            const num = this.cardNumber.replace(/\D/g, '');
+            if (num.length !== 16) {
+                this.cardError = 'Card number must be 16 digits';
+                return false;
+            }
+            this.cardError = '';
+            return true;
+        },
+        validateExpiry() {
+            if (!this.cardExpiry) {
+                this.expiryError = 'Expiry date is required';
+                return false;
+            }
+            const [month, year] = this.cardExpiry.split('/');
+            const currentYear = new Date().getFullYear() % 100;
+            const currentMonth = new Date().getMonth() + 1;
+            
+            if (!month || !year || month > 12 || month < 1) {
+                this.expiryError = 'Invalid expiry date';
+                return false;
+            }
+            if ((year < currentYear) || (year == currentYear && month < currentMonth)) {
+                this.expiryError = 'Card has expired';
+                return false;
+            }
+            this.expiryError = '';
+            return true;
+        },
+        validateCvc() {
+            if (!this.cardCvc) {
+                this.cvcError = 'CVC is required';
+                return false;
+            }
+            if (this.cardCvc.length < 3) {
+                this.cvcError = 'CVC must be 3-4 digits';
+                return false;
+            }
+            this.cvcError = '';
+            return true;
+        },
+        async handleCheckout() {
+            if (this.paymentMethod === 'card' && !this.validateCard()) {
+                return;
+            }
+            
+            this.loading = true;
+            this.showError = false;
+            this.errorMessage = '';
+            
+            try {
+                this.processingStep = 'processing';
+                const response = await fetch('/api/process-payment/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        payment_method: this.paymentMethod
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Network error occurred');
+                }
+
+                if (data.status === 'success') {
+                    if (data.payment_type === 'stripe') {
+                        // Load Stripe.js
+                        const stripe = Stripe(data.public_key);
+                        // Redirect to Stripe Checkout
+                        const result = await stripe.redirectToCheckout({
+                            sessionId: data.session_id
+                        });
+                        
+                        if (result.error) {
+                            throw new Error(result.error.message);
+                        }
+                    } else if (data.payment_type === 'paypal') {
+                        // Redirect to PayPal
+                        window.location.href = data.approval_url;
+                    }
+                } else {
+                    throw new Error(data.message || 'Payment processing failed');
+                }
+            } catch (error) {
+                this.showError = true;
+                this.errorMessage = error.message || 'An unexpected error occurred';
+                
+                window.dispatchEvent(new CustomEvent('show-notification', {
+                    detail: { 
+                        message: this.errorMessage,
+                        type: 'error',
+                        duration: 8000
+                    }
+                }));
+            } finally {
+                if (this.showError) {
+                    this.loading = false;
+                    this.processingStep = '';
+                }
+            }
+        }
+     }">
+    {% csrf_token %}
+    
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent"
+            style="text-shadow: 0 0 25px rgba(79, 70, 229, 0.4);"
+            aria-label="Checkout">
+            Checkout
+        </h1>
+        <p class="text-gray-300 mt-4">Complete your purchase securely</p>
+    </div>
+
+    <div class="{% if cart_items %}grid grid-cols-1 lg:grid-cols-3 gap-8{% else %}flex justify-center{% endif %}">
+        <!-- Order Summary -->
+        <div class="{% if cart_items %}lg:col-span-2{% endif %} glass-effect rounded-2xl p-6 {% if not cart_items %}max-w-2xl w-full{% endif %}">
+            <h2 class="text-xl font-semibold text-white mb-6">Order Summary</h2>
+            <div class="divide-y divide-gray-700">
+                {% for item in cart_items %}
+                <div class="py-4 flex items-center gap-4">
+                    <img src="{{ item.beat.get_cover_image_url }}" 
+                         alt="{{ item.beat.title }}" 
+                         class="w-12 h-12 rounded object-cover">
+                    <div class="flex-1">
+                        <h3 class="text-sm font-medium text-white truncate">{{ item.beat.title }}</h3>
+                        <p class="text-xs text-gray-400">by {{ item.beat.producer.username }}</p>
+                    </div>
+                    <span class="text-sm font-medium text-indigo-400">${{ item.beat.price }}</span>
+                </div>
+                {% empty %}
+                <div class="py-16 flex flex-col items-center justify-center text-center">
+                    <div class="w-24 h-24 mb-8 rounded-full bg-indigo-900/30 flex items-center justify-center" 
+                         aria-hidden="true">
+                        <i class="fas fa-shopping-cart text-4xl text-indigo-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-white mb-4">Ready to Create Your Next Hit?</h3>
+                    <p class="text-gray-300 mb-8 max-w-md">
+                        Browse our collection of premium beats from talented producers and start making music today.
+                    </p>
+                    <a href="{% url 'store:beat_list' %}" 
+                       class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-400 text-white rounded-lg hover:from-indigo-500 hover:to-indigo-300 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-indigo-500/25 text-lg font-semibold"
+                       aria-label="Browse available beats">
+                        <i class="fas fa-music mr-3" aria-hidden="true"></i>
+                        Browse Beats
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% if cart_items %}
+            <div class="border-t border-gray-700 pt-4 mt-4">
+                <div class="flex justify-between text-white">
+                    <span>Total</span>
+                    <span class="text-xl font-bold" id="cart-total" aria-label="Cart total: ${{ cart_total }}">${{ cart_total }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payment Details -->
+        {% if cart_items %}
+        <div class="glass-effect rounded-2xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-6">Payment Details</h2>
+            
+            <!-- Payment Method Selection -->
+            <div class="mb-6">
+                <label class="block text-sm text-gray-300 mb-1">Payment Method</label>
+                <div class="relative">
+                    <select x-model="paymentMethod"
+                            class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 cursor-pointer"
+                            aria-label="Select payment method">
+                        <option value="card">Credit/Debit Card</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="stripe">Stripe</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Form (Shown if Card Selected) -->
+            <div x-show="paymentMethod === 'card'" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                 x-cloak>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-1">Card Number</label>
+                        <input type="text" 
+                               x-model="cardNumber"
+                               @input="formatCardNumber"
+                               class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500 focus:ring focus:ring-indigo-500/20" 
+                               :class="{'border-red-500': cardError}"
+                               placeholder="1234 5678 9012 3456"
+                               maxlength="19"
+                               autocomplete="cc-number">
+                        <p x-show="cardError" 
+                           x-text="cardError"
+                           class="mt-1 text-sm text-red-500"></p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-1">Expiry Date</label>
+                            <input type="text" 
+                                   x-model="cardExpiry"
+                                   @input="formatExpiry"
+                                   class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500" 
+                                   :class="{'border-red-500': expiryError}"
+                                   placeholder="MM/YY"
+                                   maxlength="5"
+                                   autocomplete="cc-exp">
+                            <p x-show="expiryError" 
+                               x-text="expiryError"
+                               class="mt-1 text-sm text-red-500"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-1">CVC</label>
+                            <div class="relative">
+                                <input type="text" 
+                                       x-model="cardCvc"
+                                       @input="formatCvc"
+                                       class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500" 
+                                       :class="{'border-red-500': cvcError}"
+                                       placeholder="123"
+                                       maxlength="4"
+                                       autocomplete="cc-csc">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <i class="fas fa-question-circle text-gray-400 cursor-help"
+                                       x-data
+                                       @mouseenter="$tooltip('The 3 or 4 digit security code on the back of your card')"></i>
+                                </div>
+                            </div>
+                            <p x-show="cvcError" 
+                               x-text="cvcError"
+                               class="mt-1 text-sm text-red-500"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PayPal Placeholder -->
+            <div x-show="paymentMethod === 'paypal'"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                 x-cloak>
+                <div class="text-center py-8 px-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                    <i class="fab fa-paypal text-3xl text-blue-400 mb-3"></i>
+                    <p class="text-gray-300">You'll be redirected to PayPal to complete your purchase securely.</p>
+                </div>
+            </div>
+
+            <!-- Stripe Placeholder -->
+            <div x-show="paymentMethod === 'stripe'"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                 x-cloak>
+                <div class="text-center py-8 px-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                    <i class="fab fa-stripe text-3xl text-indigo-400 mb-3"></i>
+                    <p class="text-gray-300">You'll be redirected to Stripe to complete your purchase securely.</p>
+                </div>
+            </div>
+
+            <!-- Payment Processing Status -->
+            <div x-show="loading" 
+                 class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0">
+                <div class="bg-gray-900 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-800">
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="relative">
+                            <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-indigo-500"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white" x-text="processingSteps[processingStep]">Processing...</h3>
+                        <div class="w-full bg-gray-800 rounded-full h-1">
+                            <div class="bg-indigo-500 h-1 rounded-full transition-all duration-300"
+                                 :class="{
+                                     'w-1/3': processingStep === 'validating',
+                                     'w-2/3': processingStep === 'processing',
+                                     'w-full': processingStep === 'finalizing'
+                                 }"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div x-show="showError" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                 class="fixed top-4 right-4 max-w-md w-full bg-red-900 text-white p-4 rounded-lg shadow-lg border border-red-700 z-50">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-lg">Payment Failed</h4>
+                        <p class="text-red-200 mt-1" x-text="errorMessage"></p>
+                    </div>
+                    <button @click="showError = false" 
+                            class="flex-shrink-0 text-red-200 hover:text-white transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <button @click="showError = false" 
+                        class="mt-3 w-full bg-red-800 hover:bg-red-700 text-white py-2 rounded transition-colors">
+                    Try Again
+                </button>
+            </div>
+
+            <!-- Checkout Button -->
+            <button @click="handleCheckout()" 
+                    :disabled="loading"
+                    class="w-full mt-6 px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors flex items-center justify-center gap-2 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                <span x-show="!loading">
+                    <i class="fas fa-lock mr-2"></i>
+                    Place Order
+                </span>
+                <span x-show="loading" x-cloak>
+                    <i class="fas fa-spinner animate-spin mr-2"></i>
+                    Processing...
+                </span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="mt-12 text-center">
+        {% if cart_items %}
+        <a href="{% url 'store:cart' %}" 
+           class="text-indigo-400 hover:text-indigo-300 transition-colors text-lg"
+           aria-label="Return to cart">
+            <i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back to Cart
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glass-effect {
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .form-radio:checked {
+        background-color: #6366f1;
+        border-color: #6366f1;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+</style>
+{% endblock %} 

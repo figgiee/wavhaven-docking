@@ -1,56 +1,213 @@
 {% extends 'store/base.html' %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-8 py-12">
+<div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-12" 
+     x-data="{
+        activeTab: 'beats',
+        searchQuery: '{{ request.GET.q|default:"" }}',
+        view: 'grid',
+        sortBy: '{{ request.GET.sort|default:"relevance" }}',
+        filterGenre: 'all',
+        filterPrice: 'all',
+        minPrice: '{{ request.GET.min_price|default:"" }}',
+        maxPrice: '{{ request.GET.max_price|default:"" }}',
+        minBPM: '{{ request.GET.min_bpm|default:"" }}',
+        maxBPM: '{{ request.GET.max_bpm|default:"" }}',
+        selectedType: '{{ request.GET.type|default:"beat" }}',
+        beats: {{ beats|default:'[]'|safe }},
+        currentlyPlaying: null,
+        isPlaying: false,
+        playTrack(track) {
+            if (this.currentlyPlaying?.id === track.id) {
+                this.isPlaying = !this.isPlaying;
+                this.$dispatch('toggle-playback');
+            } else {
+                this.currentlyPlaying = track;
+                this.isPlaying = true;
+                this.$dispatch('play-track', track);
+            }
+        }
+    }">
     <!-- Page Header -->
     <div class="text-center mb-12">
         <h1 class="text-4xl font-bold text-white mb-4">{{ page_title }}</h1>
         <p class="text-xl text-gray-400">{{ page_description }}</p>
     </div>
 
-    <!-- Filters Section -->
-    <div class="beat-card rounded-2xl p-6 mb-12">
-        <div class="flex flex-wrap gap-6">
-            <!-- Sort Dropdown -->
-            <div class="relative" x-data="{ open: false }">
-                <button @click="open = !open" 
-                        class="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                    <span class="text-gray-300">Sort by</span>
-                    <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
+    <!-- Main Search Bar -->
+    <div class="max-w-4xl mx-auto mb-12">
+        <form method="GET" action="{% url 'store:explore' %}" class="relative flex items-center gap-4">
+            <input type="hidden" name="type" x-model="selectedType">
+            <div class="relative flex-1">
+                <input type="text" 
+                       name="q" 
+                       x-model="searchQuery"
+                       placeholder="Search for music..." 
+                       class="w-full px-6 py-4 text-lg bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent">
+                <button type="submit" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-search text-xl"></i>
                 </button>
-                <div x-show="open" 
-                     @click.away="open = false"
-                     class="absolute left-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/5">
-                    <div class="py-2">
-                        <a href="?sort=newest" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Newest</a>
-                        <a href="?sort=popular" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Most Popular</a>
-                        <a href="?sort=price_low" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Price: Low to High</a>
-                        <a href="?sort=price_high" class="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5">Price: High to Low</a>
+            </div>
+            <!-- Content Type Selector -->
+            <select name="type" 
+                    x-model="selectedType"
+                    class="px-6 py-4 text-lg bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent appearance-none cursor-pointer min-w-[140px]">
+                <option value="beat">Beats</option>
+                <option value="loop">Loops</option>
+                <option value="soundkit">Soundkits</option>
+                <option value="preset">Presets</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Content Area with Sidebar -->
+    <div class="flex max-w-[1920px] mx-auto">
+        <!-- Filter Sidebar -->
+        {% comment %}
+        <aside class="w-[280px] flex-shrink-0 p-6 bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800/50 sticky top-24 h-fit ml-4">
+            <form method="GET" action="{% url 'store:explore' %}">
+                <input type="hidden" name="q" x-model="searchQuery">
+                <input type="hidden" name="type" x-model="selectedType">
+                
+                <!-- Sort Options -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-4">Sort By</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="sort" value="relevance" x-model="sortBy" 
+                                   class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500 bg-gray-800 border-gray-700">
+                            <span class="ml-3 text-gray-300 group-hover:text-white transition-colors">Relevance</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="sort" value="newest" x-model="sortBy"
+                                   class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500 bg-gray-800 border-gray-700">
+                            <span class="ml-3 text-gray-300 group-hover:text-white transition-colors">Newest First</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="sort" value="price_low" x-model="sortBy"
+                                   class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500 bg-gray-800 border-gray-700">
+                            <span class="ml-3 text-gray-300 group-hover:text-white transition-colors">Price (Low to High)</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="sort" value="price_high" x-model="sortBy"
+                                   class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500 bg-gray-800 border-gray-700">
+                            <span class="ml-3 text-gray-300 group-hover:text-white transition-colors">Price (High to Low)</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="sort" value="popular" x-model="sortBy"
+                                   class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500 bg-gray-800 border-gray-700">
+                            <span class="ml-3 text-gray-300 group-hover:text-white transition-colors">Most Popular</span>
+                        </label>
                     </div>
                 </div>
-            </div>
 
-            <!-- Price Range Filter -->
-            <div class="flex items-center gap-3">
-                <input type="number" placeholder="Min Price" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <span class="text-gray-400">to</span>
-                <input type="number" placeholder="Max Price" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
+                <!-- Price Range -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-4">Price Range</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <input type="number"
+                                       name="min_price"
+                                       x-model="minPrice"
+                                       placeholder="Min"
+                                       class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            </div>
+                            <span class="text-gray-500">to</span>
+                            <div class="flex-1">
+                                <input type="number"
+                                       name="max_price"
+                                       x-model="maxPrice"
+                                       placeholder="Max"
+                                       class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- BPM Range Filter -->
-            <div class="flex items-center gap-3">
-                <input type="number" placeholder="Min BPM" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <span class="text-gray-400">to</span>
-                <input type="number" placeholder="Max BPM" class="w-24 px-3 py-2 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <!-- BPM Range -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-4">BPM Range</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <input type="number"
+                                       name="min_bpm"
+                                       x-model="minBPM"
+                                       placeholder="Min BPM"
+                                       class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            </div>
+                            <span class="text-gray-500">to</span>
+                            <div class="flex-1">
+                                <input type="number"
+                                       name="max_bpm"
+                                       x-model="maxBPM"
+                                       placeholder="Max BPM"
+                                       class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Apply Button -->
+                <button type="submit"
+                        class="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-indigo-500/25">
+                    Apply Filters
+                </button>
+            </form>
+        </aside>
+        {% endcomment %}
+
+        <!-- Main Content Area -->
+        <div class="flex-1">
+            <div class="max-w-[1200px] mx-auto px-8">
+                {% block explore_content %}{% endblock %}
             </div>
         </div>
     </div>
-
-    <!-- Content Section -->
-    <div class="space-y-12">
-        {% block explore_content %}{% endblock %}
-    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('alpine:init', () => {
+    // Initialize the cart store if it doesn't exist
+    if (!Alpine.store('cart')) {
+        Alpine.store('cart', {
+            count: {% if user.is_authenticated and user.cart_set.first %}{{ user.cart_set.first.cartitem_set.count }}{% else %}0{% endif %},
+            async addToCart(beatId) {
+                try {
+                    const response = await fetch('/api/cart/add/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({ beat_id: beatId })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        this.count = data.cart_count;
+                        window.dispatchEvent(new CustomEvent('show-notification', {
+                            detail: {
+                                message: 'Added to cart',
+                                type: 'success'
+                            }
+                        }));
+                    }
+                } catch (error) {
+                    console.error('Error adding to cart:', error);
+                    window.dispatchEvent(new CustomEvent('show-notification', {
+                        detail: {
+                            message: 'Error adding to cart',
+                            type: 'error'
+                        }
+                    }));
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 

@@ -14,6 +14,9 @@ import json
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db import models
 from decimal import Decimal, InvalidOperation
+from taggit.models import Tag
+from django.urls import reverse
+from .services.payment import PaymentService
 
 def genres_processor(request):
     return {
@@ -37,6 +40,7 @@ def cart_processor(request):
 
 def beat_list(request):
     query = request.GET.get('q', '')
+    tag = request.GET.get('tag', '')
     beats = Beat.objects.all().order_by('-created_at')
     
     if query:
@@ -44,10 +48,21 @@ def beat_list(request):
             Q(title__icontains=query) |
             Q(producer__username__icontains=query) |
             Q(genre__name__icontains=query) |
-            Q(tags__icontains=query)
+            Q(tags__name__in=[query])
         ).distinct()
     
-    return render(request, 'store/beats/beat_list.html', {'beats': beats})
+    if tag:
+        beats = beats.filter(tags__name__in=[tag]).distinct()
+    
+    # Get popular tags for the sidebar
+    popular_tags = Tag.objects.annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).order_by('-num_times')[:10]
+    
+    return render(request, 'store/beats/beat_list.html', {
+        'beats': beats,
+        'popular_tags': popular_tags
+    })
 
 def beat_detail(request, pk):
     beat = get_object_or_404(Beat, pk=pk)
@@ -63,6 +78,18 @@ def beat_detail(request, pk):
         )
     )
     
+    # Get tags with counts for the main beat
+    beat_tags = list(beat.tags.annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).order_by('-num_times'))
+    
+    # Get similar beats based on tags, with their tags preloaded
+    similar_beats = Beat.objects.filter(
+        tags__name__in=beat.tags.names()
+    ).exclude(
+        id=beat.id
+    ).prefetch_related('tags').distinct()[:5]
+    
     # Prepare upvote data for the template
     comment_upvotes = {}
     if request.user.is_authenticated:
@@ -75,7 +102,10 @@ def beat_detail(request, pk):
         'beat': beat,
         'comments': comments,
         'comment_upvotes': comment_upvotes,
+        'similar_beats': similar_beats,
+        'beat_tags': beat_tags,  # Annotated tags with counts
     }
+    
     return render(request, 'store/beats/beat_detail.html', context)
 
 def genres(request):
@@ -84,14 +114,33 @@ def genres(request):
 
 @login_required
 def beat_upload(request):
+    genres = Genre.objects.all()
+    popular_tags = Tag.objects.annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).order_by('-num_times')[:10]
+    
     if request.method == 'POST':
         title = request.POST.get('title')
         audio_file = request.FILES.get('audio_file')
         price = request.POST.get('price')
         bpm = request.POST.get('bpm')
         key = request.POST.get('key')
-        tags = request.POST.get('tags')
+        tags = request.POST.get('tags', '').split(',')
         genre_id = request.POST.get('genre')
+        content_type = request.POST.get('content_type', 'beat')
+        
+        # Create form_data to preserve input on error
+        form_data = {
+            'title': title,
+            'price': price,
+            'bpm': bpm,
+            'key': key,
+            'tags': request.POST.get('tags', ''),
+            'genre': genre_id,
+            'genre_name': Genre.objects.filter(id=genre_id).values_list('name', flat=True).first() if genre_id else '',
+            'content_type': content_type,
+            'selected_type': content_type  # For the content type selector
+        }
         
         if title and audio_file and price:
             try:
@@ -102,8 +151,20 @@ def beat_upload(request):
                         raise ValueError("Price cannot be negative")
                 except (InvalidOperation, ValueError) as e:
                     messages.error(request, f"Invalid price format: {str(e)}")
-                    genres = Genre.objects.all()
-                    return render(request, 'store/beats/beat_upload.html', {'genres': genres})
+                    return render(request, 'store/beats/beat_upload.html', {
+                        'genres': genres,
+                        'popular_tags': popular_tags,
+                        'form_data': form_data
+                    })
+
+                # Validate genre_id
+                if not genre_id or not genre_id.isdigit():
+                    messages.error(request, "Please select a valid genre")
+                    return render(request, 'store/beats/beat_upload.html', {
+                        'genres': genres,
+                        'popular_tags': popular_tags,
+                        'form_data': form_data
+                    })
 
                 beat = Beat(
                     title=title,
@@ -112,24 +173,42 @@ def beat_upload(request):
                     producer=request.user,
                     bpm=int(bpm) if bpm else None,
                     key=key,
-                    tags=tags,
                     genre_id=genre_id,
+                    type=content_type,
                     status='active'
                 )
                 if 'cover_image' in request.FILES:
                     beat.cover_image = request.FILES['cover_image']
                 beat.save()
-                messages.success(request, 'Beat uploaded successfully!')
+                
+                # Add tags after saving
+                for tag in tags:
+                    tag = tag.strip()
+                    if tag:
+                        beat.tags.add(tag)
+                
+                messages.success(request, f'{content_type.title()} uploaded successfully!')
                 return redirect('store:beat_detail', pk=beat.pk)
             except Exception as e:
-                messages.error(request, f'Error uploading beat: {str(e)}')
-                genres = Genre.objects.all()
-                return render(request, 'store/beats/beat_upload.html', {'genres': genres})
+                messages.error(request, f'Error uploading {content_type}: {str(e)}')
+                return render(request, 'store/beats/beat_upload.html', {
+                    'genres': genres,
+                    'popular_tags': popular_tags,
+                    'form_data': form_data
+                })
         else:
             messages.error(request, 'Please provide title, audio file, and price.')
+            return render(request, 'store/beats/beat_upload.html', {
+                'genres': genres,
+                'popular_tags': popular_tags,
+                'form_data': form_data
+            })
     
-    genres = Genre.objects.all()
-    return render(request, 'store/beats/beat_upload.html', {'genres': genres})
+    return render(request, 'store/beats/beat_upload.html', {
+        'genres': genres,
+        'popular_tags': popular_tags,
+        'form_data': {'selected_type': 'beat'}  # Default content type
+    })
 
 @login_required
 def manage_genres(request):
@@ -197,7 +276,7 @@ def edit_profile(request):
         user.save()
         
         messages.success(request, 'Profile updated successfully!')
-        return redirect('dashboard')
+        return redirect('store:dashboard')
         
     return render(request, 'store/profile/edit_profile.html')
 
@@ -207,7 +286,7 @@ def delete_beat(request, pk):
     if request.method == 'POST':
         beat.delete()
         messages.success(request, 'Beat deleted successfully!')
-        return redirect('dashboard')
+        return redirect('store:dashboard')
     return render(request, 'store/beats/delete_beat_confirm.html', {'beat': beat})
 
 def logout_view(request):
@@ -223,7 +302,7 @@ def beat_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Beat updated successfully!')
-            return redirect('dashboard')
+            return redirect('store:dashboard')
     else:
         form = BeatForm(instance=beat)
     
@@ -236,7 +315,7 @@ def beat_delete(request, pk):
     if request.method == 'POST':
         beat.delete()
         messages.success(request, 'Beat deleted successfully!')
-        return redirect('dashboard')
+        return redirect('store:dashboard')
     
     return render(request, 'store/beats/beat_delete.html', {'beat': beat})
 
@@ -359,20 +438,24 @@ def profile_view(request, username):
     beats_data = [{
         'id': beat.id,
         'title': beat.title,
-        'cover_image': beat.get_cover_image_url(),
-        'price': str(beat.price),
-        'genre': beat.genre.name if beat.genre else 'Uncategorized',
-        'bpm': beat.bpm,
-        'key': beat.key,
-        'tags': beat.tags,
-        'type': beat.type,
-        'created_at': beat.created_at.isoformat()
+        'cover_image': beat.get_cover_image_url() if hasattr(beat, 'get_cover_image_url') else None,
+        'price': str(beat.price) if beat.price else '0.00',
+        'genre': beat.genre.name if beat.genre else None,
+        'bpm': beat.bpm if hasattr(beat, 'bpm') else None,
+        'key': beat.key if hasattr(beat, 'key') else None,
+        'tags': [tag.name for tag in beat.tags.all()] if beat.tags.exists() else [],
+        'type': beat.type if hasattr(beat, 'type') else 'beat',
+        'created_at': beat.created_at.isoformat() if beat.created_at else None,
+        'url': reverse('store:beat_detail', kwargs={'pk': beat.id}),
+        'audio_file': beat.audio_file.url if beat.audio_file else None,
+        'producer': beat.producer.username
     } for beat in beats]
     
     context = {
         'profile_user': user,
         'profile': profile,
-        'uploaded_beats': beats_data,
+        'uploaded_beats': json.dumps(beats_data),
+        'beats_count': beats.count(),
         'is_following': request.user.is_authenticated and profile.followers.filter(id=request.user.id).exists(),
         'follower_count': profile.get_follower_count(),
         'following_count': profile.get_following_count(),
@@ -382,7 +465,7 @@ def profile_view(request, username):
         'total_soundkits': soundkits.count(),
         'total_presets': presets.count(),
     }
-    return render(request, 'store/profile.html', context)
+    return render(request, 'store/profile/profile.html', context)
 
 @login_required
 def edit_profile_view(request):
@@ -398,7 +481,7 @@ def edit_profile_view(request):
             user_form.save()
             profile_form.save()
             messages.success(request, 'Your profile has been updated successfully!')
-            return redirect('profile', username=request.user.username)
+            return redirect('store:profile', username=request.user.username)
     else:
         user_form = UserForm(instance=request.user)
         profile_form = UserProfileForm(instance=request.user.userprofile)
@@ -542,6 +625,7 @@ def search(request):
     max_price = request.GET.get('max_price')
     min_bpm = request.GET.get('min_bpm')
     max_bpm = request.GET.get('max_bpm')
+    selected_tags = request.GET.getlist('tags')
     
     beats = Beat.objects.all()
     
@@ -551,8 +635,12 @@ def search(request):
             Q(title__icontains=query) |
             Q(producer__username__icontains=query) |
             Q(genre__name__icontains=query) |
-            Q(tags__icontains=query)
+            Q(tags__name__in=[query])
         ).distinct()
+    
+    # Apply tag filter
+    if selected_tags:
+        beats = beats.filter(tags__name__in=selected_tags).distinct()
     
     # Apply genre filter
     if selected_genres:
@@ -579,18 +667,24 @@ def search(request):
         beats = beats.order_by('-price')
     elif sort == 'popular':
         beats = beats.order_by('-play_count')
-    # For 'relevance', we keep the default ordering from the search query
+    
+    # Get popular tags for filtering
+    popular_tags = Tag.objects.annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).order_by('-num_times')[:15]
     
     context = {
         'beats': beats,
         'query': query,
         'sort': sort,
         'selected_genres': selected_genres,
+        'selected_tags': selected_tags,
         'min_price': min_price,
         'max_price': max_price,
         'min_bpm': min_bpm,
         'max_bpm': max_bpm,
-        'genres': Genre.objects.all().order_by('name')
+        'genres': Genre.objects.all().order_by('name'),
+        'popular_tags': popular_tags
     }
     
     return render(request, 'store/search.html', context)
@@ -598,47 +692,60 @@ def search(request):
 @login_required
 def checkout(request):
     cart = Cart.objects.filter(user=request.user).first()
-    if not cart or not cart.cartitem_set.exists():
-        messages.warning(request, 'Your cart is empty')
-        return redirect('beat_list')
-        
+    
     context = {
-        'cart_items': cart.cartitem_set.all(),
-        'cart_total': sum(float(item.beat.price) for item in cart.cartitem_set.all())
+        'cart_items': cart.cartitem_set.all() if cart else [],
+        'cart_total': sum(float(item.beat.price) for item in cart.cartitem_set.all()) if cart else 0
     }
     return render(request, 'store/checkout.html', context)
 
 @login_required
-@require_http_methods(["POST"])
+@require_http_methods(["DELETE", "POST"])
 def remove_from_cart(request, item_id):
+    cart = Cart.objects.filter(user=request.user).first()
+    if not cart:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Cart not found'
+        }, status=404)
+
     try:
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
-        cart = cart_item.cart
+        cart_item = CartItem.objects.select_related('beat').get(id=item_id, cart=cart)
+        beat_title = cart_item.beat.title
+        beat_data = {
+            'id': cart_item.beat.id,
+            'title': beat_title
+        }
         cart_item.delete()
-        messages.success(request, 'Item removed from cart')
         
+        # Recalculate cart totals
         cart_count = cart.cartitem_set.count()
-        cart_total = float(sum(item.beat.price for item in cart.cartitem_set.all()))
+        cart_total = sum(float(item.beat.price) for item in cart.cartitem_set.all())
         
-        if request.headers.get('HX-Request'):
+        if request.headers.get('HX-Request') or request.method == 'POST':
             return JsonResponse({
                 'status': 'success',
+                'message': f'{beat_title} removed from cart',
                 'cart_count': cart_count,
-                'cart_total': cart_total
+                'cart_total': cart_total,
+                'action': {
+                    'label': 'Undo',
+                    'beatId': beat_data['id']
+                }
             })
         
-        # Dispatch cart update event
-        response = redirect(request.META.get('HTTP_REFERER', 'store:beat_list'))
-        response['HX-Trigger'] = json.dumps({
-            'cart-updated': {
-                'count': cart_count
-            }
-        })
-        return response
+        messages.success(request, f'{beat_title} removed from cart')
+        return redirect('store:cart_view')
         
-    except Exception as e:
-        messages.error(request, 'Error removing item from cart')
-        return redirect('store:beat_list')
+    except CartItem.DoesNotExist:
+        if request.headers.get('HX-Request') or request.method == 'POST':
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Item not found in cart'
+            }, status=404)
+        
+        messages.error(request, 'Item not found in cart')
+        return redirect('store:cart_view')
 
 @login_required
 def cart_view(request):
@@ -649,31 +756,81 @@ def cart_view(request):
     }
     return render(request, 'store/cart.html', context)
 
-def explore_beats(request):
-    beats = Beat.objects.all().order_by('-created_at')
-    return render(request, 'store/explore/beats.html', {
-        'beats': beats,
-        'page_title': 'Explore Beats',
-        'page_description': 'Discover the latest and greatest beats from our community'
-    })
-
-def explore_loops(request):
-    return render(request, 'store/explore/loops.html', {
-        'page_title': 'Explore Loops',
-        'page_description': 'Find the perfect loops for your next track'
-    })
-
-def explore_soundkits(request):
-    return render(request, 'store/explore/soundkits.html', {
-        'page_title': 'Explore Soundkits',
-        'page_description': 'Premium sound kits from top producers'
-    })
-
-def explore_presets(request):
-    return render(request, 'store/explore/presets.html', {
-        'page_title': 'Explore Presets',
-        'page_description': 'Professional presets for your favorite synths and plugins'
-    })
+def explore_content(request):
+    """
+    Unified view for exploring and searching content (beats, loops, soundkits, presets).
+    """
+    content_type = request.GET.get('type', 'all')
+    query = request.GET.get('q', '')
+    sort = request.GET.get('sort', 'relevance')
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    min_bpm = request.GET.get('min_bpm')
+    max_bpm = request.GET.get('max_bpm')
+    
+    # Base queryset
+    content = Beat.objects.filter(status='active')
+    
+    # Apply content type filter if not 'all'
+    if content_type != 'all' and content_type in dict(Beat.CONTENT_TYPES):
+        content = content.filter(type=content_type)
+    
+    # Apply search query if present
+    if query:
+        content = content.filter(
+            Q(title__icontains=query) |
+            Q(producer__username__icontains=query) |
+            Q(genre__name__icontains=query) |
+            Q(tags__name__in=[query])
+        ).distinct()
+    
+    # Apply price range filter
+    if min_price:
+        content = content.filter(price__gte=float(min_price))
+    if max_price:
+        content = content.filter(price__lte=float(max_price))
+    
+    # Apply BPM range filter
+    if min_bpm:
+        content = content.filter(bpm__gte=int(min_bpm))
+    if max_bpm:
+        content = content.filter(bpm__lte=int(max_bpm))
+    
+    # Apply sorting
+    if sort == 'newest':
+        content = content.order_by('-created_at')
+    elif sort == 'price_low':
+        content = content.order_by('price')
+    elif sort == 'price_high':
+        content = content.order_by('-price')
+    elif sort == 'popular':
+        content = content.order_by('-play_count')
+    else:  # relevance or default
+        content = content.order_by('-created_at')
+    
+    # Get popular tags for the specific content type or all content
+    tag_filter = {'beat__type': content_type} if content_type != 'all' else {}
+    popular_tags = Tag.objects.filter(**tag_filter).annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).order_by('-num_times')[:10]
+    
+    # Prepare context
+    context = {
+        'content': content,
+        'query': query,
+        'sort': sort,
+        'min_price': min_price,
+        'max_price': max_price,
+        'min_bpm': min_bpm,
+        'max_bpm': max_bpm,
+        'popular_tags': popular_tags,
+        'content_type': content_type,
+        'page_title': 'Explore All Sounds' if content_type == 'all' else f'Explore {content_type.title()}s',
+        'page_description': 'Discover the latest and greatest sounds from our community' if content_type == 'all' else f'Discover the latest and greatest {content_type}s from our community',
+        'genres': Genre.objects.all().order_by('name')
+    }
+    
+    return render(request, 'store/explore/content.html', context)
 
 def trending(request):
     # Get featured beats (top 3 beats marked as featured)
@@ -760,4 +917,114 @@ def favorites_view(request):
     }
     
     return render(request, 'store/favorites.html', context)
+
+@login_required
+def process_payment(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        payment_method = data.get('payment_method')
+        
+        cart = Cart.objects.filter(user=request.user).first()
+        if not cart:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Cart not found'
+            }, status=404)
+            
+        cart_items = cart.cartitem_set.all()
+        cart_total = sum(float(item.beat.price) for item in cart_items)
+        
+        if payment_method == 'stripe':
+            # Setup Stripe session
+            payment_data = PaymentService.setup_stripe_session(
+                request, cart_items, cart_total
+            )
+            return JsonResponse({
+                'status': 'success',
+                'payment_type': 'stripe',
+                'session_id': payment_data['session_id'],
+                'public_key': payment_data['public_key']
+            })
+            
+        elif payment_method == 'paypal':
+            # Setup PayPal payment
+            payment_data = PaymentService.setup_paypal_payment(
+                request, cart_items, cart_total
+            )
+            return JsonResponse({
+                'status': 'success',
+                'payment_type': 'paypal',
+                'approval_url': payment_data['approval_url'],
+                'payment_id': payment_data['payment_id']
+            })
+            
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid payment method'
+            }, status=400)
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+@login_required
+def payment_success(request):
+    # Handle successful payment
+    return render(request, 'store/payment_success.html')
+
+@login_required
+def payment_cancel(request):
+    # Handle cancelled payment
+    return render(request, 'store/payment_cancel.html')
+
+@login_required
+def payment_error(request):
+    # Handle payment error
+    return render(request, 'store/payment_error.html')
+
+def about(request):
+    """Render the about page."""
+    return render(request, 'store/about.html')
+
+def producer_faq(request):
+    """Render the producer FAQ page."""
+    return render(request, 'store/producer_faq.html')
+
+def submission_guidelines(request):
+    """View for submission guidelines page."""
+    return render(request, 'store/submission_guidelines.html')
+
+def customer_faq(request):
+    """View for customer FAQ page."""
+    return render(request, 'store/customer_faq.html')
+
+def licensing_info(request):
+    """View for licensing information page."""
+    return render(request, 'store/licensing_info.html')
+
+def contact_support(request):
+    """View for contact support page."""
+    return render(request, 'store/contact_support.html')
+
+def returns_policy(request):
+    """View for returns and refunds policy page."""
+    return render(request, 'store/returns_policy.html')
+
+def terms_of_service(request):
+    """View for terms of service page."""
+    return render(request, 'store/terms_of_service.html')
+
+def privacy_policy(request):
+    """View for privacy policy page."""
+    return render(request, 'store/privacy_policy.html')
+
+def cookie_policy(request):
+    """View for cookie policy page."""
+    return render(request, 'store/cookie_policy.html')
 

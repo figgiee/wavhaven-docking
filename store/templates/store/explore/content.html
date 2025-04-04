@@ -1,0 +1,210 @@
+{% extends 'store/explore/base_explore.html' %}
+
+{% block explore_content %}
+<style>
+    .beat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 32px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .beat-card {
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1280px) {
+        .beat-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .beat-grid {
+            grid-template-columns: repeat(1, 1fr);
+            gap: 20px;
+        }
+    }
+
+    /* Focus styles for accessibility */
+    .beat-card:focus-within {
+        outline: 2px solid rgb(99, 102, 241);
+        outline-offset: 2px;
+    }
+
+    .play-button:focus {
+        outline: 2px solid rgb(99, 102, 241);
+        outline-offset: 2px;
+    }
+
+    .add-to-cart-button:focus {
+        outline: 2px solid rgb(99, 102, 241);
+        outline-offset: 2px;
+    }
+
+    /* High contrast text for better readability */
+    .beat-title {
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 500;
+    }
+
+    .beat-producer {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .beat-price {
+        color: rgb(129, 140, 248);
+        font-weight: 500;
+    }
+
+    .beat-metadata {
+        color: rgba(255, 255, 255, 0.8);
+    }
+</style>
+
+<!-- Popular Tags -->
+{% if popular_tags %}
+<nav aria-label="Popular tags navigation">
+    <h2 class="text-lg font-semibold text-white mb-4">Popular Tags</h2>
+    <ul class="flex flex-wrap gap-2" role="list">
+        {% for tag in popular_tags %}
+        <li>
+            <a href="?type={{ content_type }}&tag={{ tag.name }}" 
+               class="px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-all duration-200
+                      {% if request.GET.tag == tag.name %}border border-indigo-500/50 bg-indigo-500/10{% endif %}"
+               aria-current="{% if request.GET.tag == tag.name %}true{% endif %}"
+               role="button">
+                {{ tag.name }} <span class="sr-only">tag with</span> ({{ tag.num_times }} beats)
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+
+<main class="beat-grid" role="main" aria-label="Beat listings">
+    {% for item in content %}
+    <article class="beat-card group"
+             :class="{ 'is-playing': currentlyPlaying?.id === {{ item.id }} && isPlaying }"
+             data-beat-id="{{ item.id }}"
+             tabindex="0">
+        {% csrf_token %}
+        
+        <!-- Beat Image and Play Button -->
+        <div class="relative overflow-hidden aspect-square">
+            <div class="image-container w-full h-full transition-transform duration-300 group-hover:scale-105">
+                <img src="{{ item.get_cover_image_url }}" 
+                     alt="Cover art for {{ item.title }}" 
+                     class="w-full h-full object-cover">
+            </div>
+            
+            <!-- Play Button Overlay -->
+            {% if item.audio_file %}
+            <button @click.stop="playTrack({
+                        id: {{ item.id }},
+                        title: '{{ item.title|escapejs }}',
+                        producer: '{{ item.producer.username|escapejs }}',
+                        audioUrl: '{{ item.audio_file.url|escapejs }}',
+                        coverImage: '{{ item.get_cover_image_url|escapejs }}'
+                    })"
+                    class="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all duration-300"
+                    :aria-label="isPlaying && currentlyPlaying && currentlyPlaying.id === {{ item.id }} ? 'Pause {{ item.title|escapejs }} by {{ item.producer.username|escapejs }}' : 'Play {{ item.title|escapejs }} by {{ item.producer.username|escapejs }}'"
+                    :aria-pressed="currentlyPlaying && currentlyPlaying.id === {{ item.id }} && isPlaying">
+                <div class="play-button w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center transform transition-all duration-300"
+                     :class="{ 
+                        'scale-95 bg-indigo-500/20': currentlyPlaying && currentlyPlaying.id === {{ item.id }} && isPlaying, 
+                        'hover:scale-110': !(currentlyPlaying && currentlyPlaying.id === {{ item.id }} && isPlaying) 
+                     }">
+                    <i class="fas text-xl text-white transition-all duration-300"
+                       :class="{ 
+                           'fa-pause scale-95': currentlyPlaying && currentlyPlaying.id === {{ item.id }} && isPlaying, 
+                           'fa-play ml-1 scale-100': !(currentlyPlaying && currentlyPlaying.id === {{ item.id }} && isPlaying)
+                       }"
+                       aria-hidden="true"></i>
+                </div>
+            </button>
+            {% endif %}
+        </div>
+        
+        <!-- Beat Information -->
+        <div class="p-4">
+            <div class="flex items-start justify-between gap-4 mb-2">
+                <div class="flex-1 min-w-0">
+                    <a href="{% url 'store:beat_detail' item.id %}" 
+                       class="block group"
+                       aria-label="View details for {{ item.title }}">
+                        <h3 class="beat-title text-base leading-tight truncate transition-colors duration-300 hover:text-indigo-400"
+                            :class="{ 'text-indigo-400': currentlyPlaying && currentlyPlaying.id === {{ item.id }} && isPlaying }">
+                            {{ item.title }}
+                        </h3>
+                        <p class="beat-producer text-sm truncate hover:text-gray-300 transition-colors duration-300">
+                            by {{ item.producer.username }}
+                        </p>
+                    </a>
+                </div>
+                <button @click.stop="$store.cart.addToCart({{ item.id }})" 
+                        class="add-to-cart-button flex-shrink-0 w-8 h-8 rounded-full bg-white/5 hover:bg-indigo-500/20 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                        aria-label="Add {{ item.title }} to cart">
+                    <i class="fas fa-plus text-xs text-white/70 hover:text-white" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <div class="flex items-center justify-between text-sm">
+                <span class="beat-price">${{ item.price }}</span>
+                <div class="flex items-center gap-2 text-xs beat-metadata">
+                    {% if item.bpm %}<span>{{ item.bpm }} BPM</span>{% endif %}
+                    {% if item.bpm and item.key %}<span aria-hidden="true">•</span>{% endif %}
+                    {% if item.key %}<span>{{ item.key }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+    </article>
+    {% empty %}
+    <div class="col-span-full text-center py-12" role="alert">
+        <p class="text-gray-400">No {{ content_type }}s found matching your criteria.</p>
+    </div>
+    {% endfor %}
+</main>
+
+<!-- Pagination -->
+{% if content.has_other_pages %}
+<nav aria-label="Pagination" class="mt-12 flex justify-center">
+    <ul class="flex items-center gap-2" role="list">
+        {% if content.has_previous %}
+        <li>
+            <a href="?page={{ content.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}" 
+               class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300"
+               aria-label="Go to previous page">
+                Previous
+            </a>
+        </li>
+        {% endif %}
+        
+        <li>
+            <span class="px-4 py-2 text-gray-400" aria-current="page">
+                Page {{ content.number }} of {{ content.paginator.num_pages }}
+            </span>
+        </li>
+        
+        {% if content.has_next %}
+        <li>
+            <a href="?page={{ content.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}" 
+               class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300"
+               aria-label="Go to next page">
+                Next
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %} 

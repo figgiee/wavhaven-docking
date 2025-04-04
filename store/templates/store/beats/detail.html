@@ -1,7 +1,24 @@
 {% extends 'store/base.html' %}
 
 {% block content %}
-<div class="glass-effect rounded-xl overflow-hidden" style="backdrop-filter: blur(4px);">
+<div class="glass-effect rounded-xl overflow-hidden" style="backdrop-filter: blur(4px);"
+     x-data="{
+        init() {
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.tags == 'success' %}
+                        window.dispatchEvent(new CustomEvent('show-notification', {
+                            detail: {
+                                message: 'Uploaded successfully!',
+                                type: 'success',
+                                duration: 3000
+                            }
+                        }));
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        }
+     }">
     <div class="p-8">
         <div class="flex flex-col md:flex-row gap-8">
             <!-- Cover Image -->

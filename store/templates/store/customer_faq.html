@@ -1,0 +1,155 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+                Customer FAQ
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                Frequently asked questions about purchasing and using content from WavHaven
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="space-y-6" x-data="{ activeTab: null }">
+            <!-- Purchasing -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'purchasing' ? null : 'purchasing'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Purchasing</h3>
+                    <i class="fas" :class="activeTab === 'purchasing' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'purchasing'" 
+                     x-transition
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Common questions about buying content:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>We accept all major credit cards and PayPal</li>
+                            <li>Instant download after purchase</li>
+                            <li>All prices are in USD</li>
+                            <li>Bulk purchase discounts available</li>
+                            <li>30-day satisfaction guarantee</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Licensing -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'licensing' ? null : 'licensing'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Licensing</h3>
+                    <i class="fas" :class="activeTab === 'licensing' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'licensing'"
+                     x-transition
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Understanding our licenses:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Basic License: Personal/Non-Profit use</li>
+                            <li>Premium License: Commercial use</li>
+                            <li>Exclusive Rights: Full ownership transfer</li>
+                            <li>All licenses include proper documentation</li>
+                            <li>Custom licensing available for special needs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Downloads & Files -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'downloads' ? null : 'downloads'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Downloads & Files</h3>
+                    <i class="fas" :class="activeTab === 'downloads' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'downloads'"
+                     x-transition
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">About our download system:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>Instant download after payment</li>
+                            <li>High-quality uncompressed files</li>
+                            <li>Multiple format options available</li>
+                            <li>Secure download links</li>
+                            <li>30-day re-download window</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Support -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'support' ? null : 'support'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Technical Support</h3>
+                    <i class="fas" :class="activeTab === 'support' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'support'"
+                     x-transition
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Getting help when you need it:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>24/7 email support</li>
+                            <li>Live chat during business hours</li>
+                            <li>Detailed documentation provided</li>
+                            <li>Installation guides available</li>
+                            <li>Common issues troubleshooting</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Returns & Refunds -->
+            <div class="glass-effect rounded-xl overflow-hidden">
+                <button @click="activeTab = activeTab === 'returns' ? null : 'returns'"
+                        class="w-full px-6 py-4 flex items-center justify-between text-left">
+                    <h3 class="text-lg font-semibold text-white">Returns & Refunds</h3>
+                    <i class="fas" :class="activeTab === 'returns' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="activeTab === 'returns'"
+                     x-transition
+                     class="px-6 pb-4">
+                    <div class="prose prose-invert max-w-none">
+                        <p class="text-gray-300 mb-4">Our refund policy:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li>30-day satisfaction guarantee</li>
+                            <li>Quality issues eligible for refund</li>
+                            <li>Refund process typically takes 3-5 business days</li>
+                            <li>Contact support to initiate refund</li>
+                            <li>Some restrictions apply to custom orders</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Support -->
+<section class="py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-white">Still Have Questions?</h2>
+        <p class="text-gray-300 mb-8">
+            Our support team is here to help you with any questions or concerns.
+        </p>
+        <a href="{% url 'store:support' %}" 
+           class="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-indigo-500/25">
+            <i class="fas fa-envelope mr-2"></i>
+            Contact Support
+        </a>
+    </div>
+</section>
+{% endblock %} 

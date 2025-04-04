@@ -9,82 +9,157 @@
      x-transition:leave="transition ease-in duration-300"
      x-transition:leave-start="opacity-100 transform translate-y-0"
      x-transition:leave-end="opacity-0 transform translate-y-full"
-     @play-track.window="handlePlayTrack($event.detail)"
-     class="persistent-player fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 h-28 z-[9999]"
-     id="persistent-player"
-     style="transform: translateZ(0);">
-    <div class="max-w-7xl mx-auto px-4 h-full flex items-center gap-6">
-        <!-- Track Info -->
-        <div class="flex items-center gap-4 w-64">
-            <a :href="`/beat/${currentTrack?.id}/`" class="block">
-                <img :src="currentTrack?.coverImage" 
-                     :alt="currentTrack?.title"
-                     class="w-16 h-16 rounded-lg object-cover hover:opacity-80 transition-opacity">
-            </a>
-            <div class="min-w-0">
-                <a :href="`/beat/${currentTrack?.id}/`" class="block group">
-                    <h4 class="text-white font-medium truncate group-hover:text-indigo-400 transition-colors" x-text="currentTrack?.title"></h4>
-                    <p class="text-gray-400 text-sm truncate" x-text="currentTrack?.producer"></p>
+     @play-track.window="loadTrack($event.detail)"
+     class="fixed bottom-0 left-0 right-0 bg-black/40 backdrop-blur-xl border-t border-white/10 h-24 z-[9999]">
+    
+    <!-- Track Info -->
+    <div class="max-w-7xl mx-auto h-full relative px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-12 gap-4 h-full items-center">
+            <!-- Track Info Section -->
+            <div class="col-span-3 flex items-center">
+                <a :href="'/beat/' + currentTrack?.id" class="block shrink-0 relative cd-container">
+                    <div class="cd-base"></div>
+                    <img x-show="currentTrack" 
+                         :src="currentTrack?.coverImage || currentTrack?.imageUrl" 
+                         class="w-20 h-20 cover-art" 
+                         :class="{ 'is-playing': isPlaying }"
+                         :alt="currentTrack?.title">
+                    <div class="cd-hole"></div>
+                    <div class="cd-ring"></div>
+                    <div class="cd-shine"></div>
                 </a>
+                <div class="min-w-0 ml-4">
+                    <a :href="'/beat/' + currentTrack?.id" 
+                       class="block text-white font-medium truncate hover:text-indigo-400 transition-colors" 
+                       x-text="currentTrack?.title"></a>
+                    <p class="text-gray-400 text-sm truncate mt-0.5">
+                        <span x-text="currentTrack?.producer?.username || currentTrack?.artist" 
+                              class="hover:text-indigo-400 transition-colors"></span>
+                    </p>
+                </div>
             </div>
-        </div>
 
-        <!-- Player Controls -->
-        <div class="flex-1 flex flex-col items-center gap-2">
-            <div class="flex items-center gap-6">
-                <button class="text-gray-400 hover:text-white transition-colors"
-                        @click="previousTrack">
-                    <i class="fas fa-backward"></i>
-                </button>
-                <button class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
-                        @click="togglePlay">
-                    <i class="fas" :class="isPlaying ? 'fa-pause' : 'fa-play ml-1'"></i>
-                </button>
-                <button class="text-gray-400 hover:text-white transition-colors"
-                        @click="nextTrack">
-                    <i class="fas fa-forward"></i>
-                </button>
-                <button class="text-gray-400 hover:text-white transition-colors"
-                        @click="toggleLoopMode"
-                        :class="{'text-indigo-400': loopMode !== 'none'}"
-                        :title="loopMode === 'none' ? 'No Loop' : loopMode === 'infinite' ? 'Loop Track' : 'Loop Once'">
+            <!-- Player Controls -->
+            <div class="col-span-7 flex flex-col items-center justify-center relative">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <canvas x-ref="visualizer" class="w-full h-full opacity-80"></canvas>
+                </div>
+                <div class="w-full flex flex-col items-center justify-center relative z-10">
+                    <!-- Control Buttons -->
+                    <div class="flex items-center justify-center space-x-4 mb-3">
+                        <button @click="toggleShuffle" 
+                                class="h-9 w-9 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50 hover:bg-white/10 text-gray-400 hover:text-white"
+                                :class="{ 'bg-white/10 text-indigo-400': isShuffled }">
+                            <i class="fas fa-random text-sm"></i>
+                        </button>
+                        <button @click="previousTrack" 
+                                class="h-9 w-9 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50 hover:bg-white/10 text-gray-400 hover:text-white">
+                            <i class="fas fa-step-backward text-sm"></i>
+                        </button>
+                        <button @click="togglePlay" 
+                                class="h-10 w-10 inline-flex items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black">
+                            <i class="fas" :class="isPlaying ? 'fa-pause' : 'fa-play'"></i>
+                        </button>
+                        <button @click="nextTrack" 
+                                class="h-9 w-9 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50 hover:bg-white/10 text-gray-400 hover:text-white">
+                            <i class="fas fa-step-forward text-sm"></i>
+                        </button>
+                        <button @click="toggleLoop" 
+                                class="h-9 w-9 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50 hover:bg-white/10 text-gray-400 hover:text-white"
+                                :class="{ 'bg-white/10 text-indigo-400': loopMode !== 'off' }">
+                            <i class="fas" :class="{
+                                'fa-repeat': loopMode === 'all',
+                                'fa-repeat-1': loopMode === 'one',
+                                'fa-random': loopMode === 'off'
+                            }"></i>
+                        </button>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full flex items-center space-x-2 text-xs text-gray-400">
+                        <span class="font-medium tabular-nums w-12 text-center" x-text="formatTime(currentTime)"></span>
+                        <div class="relative flex-1 h-1.5 bg-gray-800/50 rounded-full overflow-hidden group hover:cursor-grab"
+                             x-ref="progressBar"
+                             @mousedown.prevent="startDrag"
+                             @click.stop.prevent="seek"
+                             :class="{ 'cursor-grabbing': isDragging }"
+                             style="touch-action: none;">
+                            <!-- Track Background -->
+                            <div class="absolute inset-0 rounded-full bg-gray-800/50"></div>
+                            <!-- Progress Fill -->
+                            <div class="absolute h-full bg-indigo-500 rounded-full transform-gpu will-change-transform transition-transform" 
+                                 :class="{ 'transition-none': isDragging }"
+                                 :style="'transform: translateX(' + ((currentTime / duration * 100) - 100) + '%); width: 100%;'">
+                                <!-- Hover/Active State -->
+                                <div class="absolute inset-0 bg-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </div>
+                            <!-- Thumb -->
+                            <div class="absolute h-4 w-4 -top-[5px] -ml-2 flex items-center justify-center"
+                                 :style="'left: ' + (currentTime / duration * 100) + '%'">
+                                <div class="h-3 w-3 rounded-full bg-indigo-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                     :class="{ 'opacity-100 scale-110': isDragging }"></div>
+                            </div>
+                        </div>
+                        <span class="font-medium tabular-nums w-12 text-center" x-text="formatTime(duration)"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volume Control -->
+            <div class="col-span-2 flex items-center justify-end space-x-4">
+                <button @click="toggleMute" 
+                        class="text-gray-400 hover:text-white transition-colors"
+                        :class="{ 'text-indigo-500': isMuted }">
                     <i class="fas" :class="{
-                        'fa-repeat': loopMode === 'none',
-                        'fa-sync': loopMode === 'infinite',
-                        'fa-redo': loopMode === 'once'
+                        'fa-volume-up': volume > 50 && !isMuted,
+                        'fa-volume-down': volume <= 50 && volume > 0 && !isMuted,
+                        'fa-volume-mute': volume === 0 || isMuted
                     }"></i>
                 </button>
-            </div>
-
-            <!-- Waveform -->
-            <div class="waveform-container flex-1 min-w-0">
-                <div class="flex items-center gap-4 w-full">
-                    <span x-text="formatTime(currentTime)" class="text-xs text-gray-400 tabular-nums w-12 text-right">0:00</span>
-                    <div class="relative flex-1">
-                        <div id="waveform"></div>
+                <div class="relative flex items-center w-32 select-none touch-none" x-ref="volumeRoot">
+                    <!-- Track -->
+                    <div class="relative w-full h-8 flex items-center">
+                        <div class="absolute h-2 w-full rounded-full bg-gray-800/50 overflow-hidden cursor-pointer"
+                             @click.prevent="updateVolumeFromEvent"
+                             @mousedown.prevent="startVolumeDrag">
+                            <!-- Fill -->
+                            <div class="absolute h-full bg-indigo-500 rounded-full transform-gpu will-change-transform"
+                                 :style="'transform: translateX(' + (volume - 100) + '%); width: 100%;'"></div>
+                        </div>
+                        <!-- Thumb -->
+                        <div class="absolute h-4 w-4 rounded-full bg-indigo-500 shadow-lg transform -translate-x-1/2 will-change-transform hover:scale-110"
+                             :style="'left: ' + volume + '%'"
+                             :class="{ 'scale-105': isVolumeDragging }"
+                             @mousedown.prevent="startVolumeDrag"
+                             role="slider"
+                             aria-label="Volume"
+                             :aria-valuenow="volume"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             tabindex="0"
+                             @keydown.left.prevent="volume = Math.max(0, volume - 5); updateVolume()"
+                             @keydown.right.prevent="volume = Math.min(100, volume + 5); updateVolume()"
+                             @keydown.home.prevent="volume = 0; updateVolume()"
+                             @keydown.end.prevent="volume = 100; updateVolume()">
+                            <!-- Focus Ring -->
+                            <div class="absolute -inset-2 rounded-full bg-indigo-500/10 opacity-0"
+                                 :class="{ 'opacity-100': isVolumeDragging }"></div>
+                        </div>
                     </div>
-                    <span x-text="formatTime(duration)" class="text-xs text-gray-400 tabular-nums w-12">0:00</span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Volume Control -->
-        <div class="w-36 flex items-center gap-4">
-            <button @click="toggleMute" 
-                    class="text-gray-400 hover:text-white transition-colors">
-                <i class="fas" :class="{
-                    'fa-volume-up': !isMuted && volume > 50,
-                    'fa-volume-down': !isMuted && volume <= 50 && volume > 0,
-                    'fa-volume-off': isMuted || volume == 0
-                }"></i>
-            </button>
-            <input type="range" 
-                   x-model="volume"
-                   @input="updateVolume"
-                   min="0" 
-                   max="100" 
-                   class="w-full">
-        </div>
+    <!-- Loading Indicator -->
+    <div x-show="isLoading" 
+         class="absolute inset-0 bg-black/50 flex items-center justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+    </div>
+
+    <!-- Error Message -->
+    <div x-show="error" 
+         class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-red-500 text-white px-4 py-2 rounded-t-lg">
+        <span x-text="error"></span>
     </div>
 </div>
 
@@ -94,366 +169,852 @@
     display: none !important;
 }
 
-/* Base styles for the player */
+/* Define spin animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* CD Styling */
+.cd-container {
+    position: relative;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    overflow: visible;
+}
+
+/* Base CD layer */
+.cd-base {
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #111, #333);
+    box-shadow: 
+        0 0 2px rgba(0,0,0,0.5),
+        0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* Cover art circular mask */
+.cover-art {
+    position: relative;
+    border-radius: 50%;
+    object-fit: cover;
+    mask-image: radial-gradient(circle at center, 
+        transparent 18%, 
+        black 20%
+    );
+    -webkit-mask-image: radial-gradient(circle at center, 
+        transparent 18%, 
+        black 20%
+    );
+    transform-origin: center center;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* CD center hole */
+.cd-hole {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.875rem;
+    height: 0.875rem;
+    background: #111;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.8);
+}
+
+/* CD center ring */
+.cd-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #222, #333);
+    box-shadow: inset 0 0 2px rgba(255,255,255,0.2);
+    z-index: -1;
+}
+
+/* Iridescent shine effect */
+.cd-shine {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255,255,255,0.1) 45%,
+        rgba(255,255,255,0.2) 50%,
+        rgba(255,255,255,0.1) 55%,
+        transparent 60%
+    );
+    mix-blend-mode: soft-light;
+    pointer-events: none;
+}
+
+/* Rainbow edge effect */
+.cd-container::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    background: linear-gradient(
+        45deg,
+        rgba(255,0,0,0.1),
+        rgba(255,255,0,0.1),
+        rgba(0,255,0,0.1),
+        rgba(0,255,255,0.1),
+        rgba(0,0,255,0.1),
+        rgba(255,0,255,0.1)
+    );
+    opacity: 0.5;
+    mix-blend-mode: color;
+    pointer-events: none;
+}
+
+/* Hover effect */
+.cd-container:hover .cd-shine {
+    background: linear-gradient(
+        45deg,
+        transparent 35%,
+        rgba(255,255,255,0.2) 40%,
+        rgba(255,255,255,0.3) 50%,
+        rgba(255,255,255,0.2) 60%,
+        transparent 65%
+    );
+}
+
+/* Base styles for the player with glassmorphism */
 .persistent-player {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     z-index: 9999 !important;
-    transition-property: transform, opacity !important;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
-    transition-duration: 300ms !important;
+    background: rgba(0, 0, 0, 0.75) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Ensure waveform container is properly contained */
-#waveform {
-    width: 100% !important;
-    max-width: 600px !important;
-    min-width: 400px !important;
-    height: 32px !important;
-    position: relative !important;
-    z-index: 1;
-    contain: strict;
+/* Volume control styles */
+.volume-control {
+    touch-action: none;
+    user-select: none;
 }
 
-#waveform > wave {
-    height: 32px !important;
-    width: 100% !important;
+.volume-thumb {
+    transition: none;
 }
 
-.waveform-container {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    width: 100% !important;
-    max-width: 600px !important;
-    margin: 0 auto !important;
-    padding: 0 16px !important;
-    position: relative !important;
+.volume-track {
+    transition: none;
 }
 
-.waveform-container .relative {
-    width: 100% !important;
+/* Remove old volume slider styles */
+.volume-slider,
+.volume-slider::-webkit-slider-thumb,
+.volume-slider::-moz-range-thumb,
+.volume-slider::-ms-thumb {
+    display: none;
+}
+
+/* Time labels */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    line-height: 1;
+    min-width: 3.5ch; /* Ensures consistent width for time labels */
+    text-align: center;
+}
+
+/* Add keyframes for continuous rotation */
+@keyframes continuousRotation {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Add keyframes for deceleration */
+@keyframes decelerateRotation {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Apply animation when playing */
+.cover-art.is-playing {
+    animation: spin 1.2s linear infinite;
+}
+
+/* Progress bar hover and drag states */
+.cursor-grab {
+    cursor: grab !important;
+}
+
+.cursor-grabbing {
+    cursor: grabbing !important;
+}
+
+/* Prevent text selection during drag */
+.select-none {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Smooth progress bar transitions */
+.transform-gpu {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.will-change-transform {
+    will-change: transform;
+}
+
+/* Progress bar hover effect */
+.group:hover .h-1 {
+    height: 0.5rem;
+}
+
+/* Volume slider hover effect */
+.volume-slider {
+    height: 4px;
+    transition: height 0.2s ease;
+}
+
+.volume-slider:hover {
+    height: 6px;
+}
+
+/* Remove default range input styling */
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    display: none;
+}
+
+.volume-slider::-moz-range-thumb {
+    display: none;
+}
+
+.volume-slider::-ms-thumb {
+    display: none;
+}
+
+/* Add these new styles for the volume slider */
+[role="slider"] {
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+[role="slider"]:active {
+    cursor: grabbing;
+}
+
+[role="slider"]:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+/* Remove transition classes that might slow down updates */
+.volume-thumb,
+.volume-track {
+    transition: none;
+}
+
+/* Add these new styles for the player controls */
+button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.group:hover .h-1.5 {
+    height: 0.375rem;
 }
 </style>
 
 <script>
-// Store player state in sessionStorage
-const PLAYER_STATE_KEY = 'audioPlayerState';
-
-// Ensure single instance
 document.addEventListener('alpine:init', () => {
-    if (window.persistentPlayerInitialized) {
-        return;
-    }
-    window.persistentPlayerInitialized = true;
-
     Alpine.data('audioPlayer', () => ({
         currentTrack: null,
+        howl: null,
         isPlaying: false,
-        volume: localStorage.getItem('playerVolume') || 100,
+        volume: 80,
         isMuted: false,
         currentTime: 0,
         duration: 0,
-        loopMode: 'none',
-        queue: [],
-        currentQueueIndex: -1,
-        wavesurfer: null,
+        isLoading: false,
+        retryAttempts: 0,
+        maxRetries: 3,
+        error: null,
+        playlist: [],
+        currentIndex: 0,
+        isShuffled: false,
+        loopMode: 'off', // 'off', 'one', 'all'
+        analyser: null,
+        dataArray: null,
+        animationFrame: null,
+        audioSource: null,
+        timeUpdateInterval: null,
+        isDragging: false,
+        dragTime: 0,
+        lastDragEvent: null,
+        dragAnimationFrame: null,
+        isVolumeDragging: false,
+        lastVolumeDragEvent: null,
+        volumeDragAnimationFrame: null,
 
         init() {
-            // Try to restore state from sessionStorage
-            const savedState = sessionStorage.getItem(PLAYER_STATE_KEY);
-            if (savedState) {
-                const state = JSON.parse(savedState);
-                this.currentTrack = state.currentTrack;
-                this.queue = state.queue;
-                this.currentQueueIndex = state.currentQueueIndex;
-                this.loopMode = state.loopMode;
+            // Load saved volume
+            const savedVolume = localStorage.getItem('playerVolume');
+            if (savedVolume !== null) {
+                this.volume = parseInt(savedVolume);
             }
 
-            // Initialize WaveSurfer
-            this.wavesurfer = WaveSurfer.create({
-                container: '#waveform',
-                waveColor: 'rgba(255, 255, 255, 0.2)',
-                progressColor: 'rgba(99, 102, 241, 0.8)',
-                cursorColor: 'rgba(255, 255, 255, 0.5)',
-                barWidth: 2,
-                barGap: 1,
-                height: 32,
-                barRadius: 2,
-                normalize: true,
-                backend: 'MediaElement',
-                hideScrollbar: true,
-                responsive: true,
-                interact: true,
-                partialRender: true,
-                pixelRatio: 1
-            });
-
-            // WaveSurfer event handlers
-            this.wavesurfer.on('ready', () => {
-                this.duration = this.wavesurfer.getDuration();
-                if (this.isPlaying) {
-                    this.wavesurfer.play();
-                }
-                this.syncPlayState();
-            });
-
-            this.wavesurfer.on('audioprocess', (currentTime) => {
-                this.currentTime = currentTime;
-            });
-
-            this.wavesurfer.on('finish', () => {
-                if (this.loopMode === 'infinite') {
-                    this.wavesurfer.play();
-                } else if (this.loopMode === 'once') {
-                    this.wavesurfer.play();
-                    this.loopMode = 'none';
-                } else {
-                    this.isPlaying = false;
-                    this.currentTime = 0;
-                    this.updatePlayState();
-                    setTimeout(() => this.nextTrack(), 0);
-                }
-            });
-
-            // Add click handler for seeking
-            document.querySelector('#waveform').addEventListener('click', (e) => {
-                const rect = e.target.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const percent = x / rect.width;
-                this.wavesurfer.seekTo(percent);
-                if (this.isPlaying) {
-                    this.wavesurfer.play();
-                }
-            });
-
-            if (!window.audioPlayer) {
-                window.audioPlayer = this;
-                if (this.currentTrack) {
-                    this.loadTrack(this.currentTrack, 0);
-                }
-            }
-
-            // Save state before page unload
-            window.addEventListener('beforeunload', () => this.saveState());
-            
-            // Handle navigation
-            document.addEventListener('turbolinks:before-visit', () => this.saveState());
-            document.addEventListener('turbolinks:load', () => this.syncPlayState());
-            
-            // Handle visibility change
-            document.addEventListener('visibilitychange', () => {
-                this.syncPlayState();
-            });
-
-            // Set initial volume
-            this.wavesurfer.setVolume(this.volume / 100);
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => this.cleanup());
         },
 
-        loadTrack(track, startTime = 0) {
-            if (!this.currentTrack || this.currentTrack.id !== track.id) {
-                startTime = 0;
-                this.currentTime = 0;
-                sessionStorage.removeItem(PLAYER_STATE_KEY);
+        initializeVisualization() {
+            // Use Howler's AudioContext
+            const ctx = Howler.ctx;
+            
+            if (!ctx) {
+                console.warn('Howler AudioContext not available');
+                return;
             }
-            
-            this.currentTrack = track;
-            this.currentTime = startTime;
-            
-            // Load audio into WaveSurfer
-            this.wavesurfer.load(track.audioUrl);
-            this.wavesurfer.setVolume(this.volume / 100);
 
-            // Set up event handlers
-            this.wavesurfer.once('ready', () => {
-                this.duration = this.wavesurfer.getDuration();
-                if (startTime > 0) {
-                    this.wavesurfer.seekTo(startTime / this.duration);
-                }
-                if (this.isPlaying) {
-                    this.wavesurfer.play();
-                }
-                this.syncPlayState();
-            });
-        },
+            // Create analyzer if it doesn't exist
+            if (!this.analyser) {
+                this.analyser = ctx.createAnalyser();
+                this.analyser.fftSize = 2048;
+                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            }
 
-        play() {
-            if (this.wavesurfer) {
-                this.wavesurfer.play();
-                this.isPlaying = true;
-                this.syncPlayState();
+            // Resume context if suspended
+            if (ctx.state === 'suspended') {
+                ctx.resume();
             }
         },
 
-        pause() {
-            if (this.wavesurfer) {
-                this.wavesurfer.pause();
+        disconnectAudioNodes() {
+            try {
+                if (this.howl && this.howl._sounds[0] && this.howl._sounds[0]._node) {
+                    const sound = this.howl._sounds[0];
+                    if (sound._node) {
+                        sound._node.disconnect();
+                        // Reconnect to destination to maintain Howler's chain
+                        sound._node.connect(Howler.ctx.destination);
+                    }
+                }
+                if (this.analyser) {
+                    this.analyser.disconnect();
+                }
+            } catch (error) {
+                console.warn('Error disconnecting audio nodes:', error);
+            }
+        },
+
+        connectAudioNodes() {
+            if (!this.howl?._sounds[0]) {
+                console.warn('No Howl sound available to connect');
+                return false;
+            }
+
+            try {
+                const ctx = Howler.ctx;
+                if (!ctx) {
+                    console.warn('Howler AudioContext not available');
+                    return false;
+                }
+
+                // Get Howler's internal nodes
+                const sound = this.howl._sounds[0];
+                
+                // Wait until Howler has created its internal nodes
+                if (!sound._node) {
+                    if (this.retryAttempts < this.maxRetries) {
+                        this.retryAttempts++;
+                        setTimeout(() => this.connectAudioNodes(), 50 * Math.pow(2, this.retryAttempts));
+                        return false;
+                    }
+                    console.warn('Howler nodes not ready after retries');
+                    return false;
+                }
+
+                // Disconnect existing nodes first
+                this.disconnectAudioNodes();
+
+                // Get or create the analyser node
+                if (!this.analyser) {
+                    this.analyser = ctx.createAnalyser();
+                    this.analyser.fftSize = 2048;
+                    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                }
+
+                // Connect our analyser to Howler's node chain
+                const gainNode = sound._node;
+                gainNode.disconnect();
+                gainNode.connect(this.analyser);
+                this.analyser.connect(ctx.destination);
+
+                return true;
+            } catch (error) {
+                console.warn('Audio visualization connection error:', error);
+                if (this.retryAttempts < this.maxRetries) {
+                    this.retryAttempts++;
+                    setTimeout(() => this.connectAudioNodes(), 50 * Math.pow(2, this.retryAttempts));
+                    return false;
+                }
+                return false;
+            }
+        },
+
+        draw() {
+            if (!this.analyser || !this.$refs.visualizer || !this.isPlaying) {
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = null;
+                }
+                return;
+            }
+
+            this.animationFrame = requestAnimationFrame(() => this.draw());
+
+            const canvas = this.$refs.visualizer;
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size with proper DPI scaling
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Get frequency data
+            this.analyser.getByteFrequencyData(this.dataArray);
+
+            // Calculate dimensions for centered visualization
+            const barWidth = 2;
+            const barGap = 2;
+            const maxBars = 70;
+            const totalWidth = (barWidth + barGap) * maxBars - barGap;
+            const startX = (canvas.width - totalWidth) / 2;
+            const centerY = canvas.height / 2;
+
+            // Calculate progress
+            const progress = this.currentTime / this.duration;
+            const progressX = startX + (totalWidth * progress);
+
+            // Draw bars
+            for (let i = 0; i < maxBars; i++) {
+                const x = startX + (i * (barWidth + barGap));
+                const dataIndex = Math.floor(i * (this.analyser.frequencyBinCount / maxBars));
+                const value = this.dataArray[dataIndex];
+                const barHeight = (value / 255) * (canvas.height / 2.5);
+
+                ctx.fillStyle = x <= progressX ? 
+                    'rgba(99, 102, 241, 0.8)' : 
+                    'rgba(31, 41, 55, 0.3)';
+
+                // Draw mirrored bars
+                ctx.fillRect(x, centerY - barHeight, barWidth, barHeight);
+                ctx.fillRect(x, centerY, barWidth, barHeight);
+            }
+        },
+
+        loadTrack(track) {
+            if (!track?.audioUrl) {
+                console.error('Invalid track data');
+                return;
+            }
+
+            this.isLoading = true;
+            this.error = null;
+            this.retryAttempts = 0;
+
+            try {
+                // Clean up previous track completely
+                this.cleanup();
+
+                // Initialize visualization using Howler's context
+                this.initializeVisualization();
+
+                // Create new Howl instance
+                this.howl = new Howl({
+                    src: [track.audioUrl],
+                    html5: true,
+                    volume: this.volume / 100,
+                    format: ['mp3', 'wav'],
+                    onload: () => {
+                        this.duration = this.howl.duration();
+                        this.isLoading = false;
+                        this.currentTrack = track;
+
+                        // Wait for the first 'play' event to set up visualization
+                        this.howl.once('play', () => {
+                            // Wait for Howler to fully set up its nodes
+                            requestAnimationFrame(() => {
+                                if (this.connectAudioNodes()) {
+                                    this.draw();
+                                }
+                            });
+                            this.startTimeUpdate();
+                        });
+
+                        this.howl.play();
+                        this.isPlaying = true;
+                        this.dispatchPlayState();
+                    },
+                    onplay: () => {
+                        this.isPlaying = true;
+                        this.startTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onpause: () => {
+                        this.isPlaying = false;
+                        this.stopTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onstop: () => {
+                        this.isPlaying = false;
+                        this.stopTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onend: () => {
+                        this.isPlaying = false;
+                        this.stopTimeUpdate();
+                        this.dispatchPlayState();
+                        this.playNext();
+                    },
+                    onloaderror: (_, error) => {
+                        this.isLoading = false;
+                        this.error = error;
+                        console.error('Error loading audio:', error);
+                    }
+                });
+            } catch (error) {
+                this.isLoading = false;
+                this.error = error;
+                console.error('Error creating Howl instance:', error);
+            }
+        },
+
+        startTimeUpdate() {
+            this.stopTimeUpdate();
+            this.timeUpdateInterval = setInterval(() => {
+                if (this.howl && this.isPlaying && !this.isDragging) {
+                    this.currentTime = this.howl.seek();
+                }
+            }, 100);
+        },
+
+        stopTimeUpdate() {
+            if (this.timeUpdateInterval) {
+                clearInterval(this.timeUpdateInterval);
+                this.timeUpdateInterval = null;
+            }
+        },
+
+        handleTrackEnd() {
+            if (this.loopMode === 'one') {
+                this.howl.play();
+            } else if (this.loopMode === 'all') {
+                this.nextTrack();
+            } else {
                 this.isPlaying = false;
-                this.syncPlayState();
+                this.currentTime = 0;
             }
         },
 
         togglePlay() {
+            if (!this.howl) return;
+            
             if (this.isPlaying) {
-                this.pause();
+                this.howl.pause();
             } else {
-                this.play();
+                this.howl.play();
+                if (!this.animationFrame) {
+                    this.setupVisualization();
+                }
             }
         },
 
-        seekTo(position) {
-            if (this.wavesurfer) {
-                this.wavesurfer.seekTo(position);
+        seek(event) {
+            if (!this.howl || !this.duration) return;
+            
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const barWidth = rect.width;
+            
+            // Ensure the click position is within bounds
+            const boundedX = Math.max(0, Math.min(clickX, barWidth));
+            const percentage = boundedX / barWidth;
+            
+            const seekTime = percentage * this.duration;
+            this.howl.seek(seekTime);
+            this.currentTime = seekTime;
+        },
+
+        startDrag(event) {
+            if (!this.howl || !this.duration) return;
+            this.isDragging = true;
+            this.lastDragEvent = event;
+            
+            // Start the animation frame loop
+            this.updateDragAnimation();
+            
+            // Add event listeners for drag and end
+            window.addEventListener('mousemove', this.handleDragMove.bind(this));
+            window.addEventListener('mouseup', this.endDrag.bind(this));
+            
+            // Prevent text selection during drag
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'grabbing';
+        },
+
+        handleDragMove(event) {
+            if (!this.isDragging) return;
+            this.lastDragEvent = event;
+        },
+
+        updateDragAnimation() {
+            if (!this.isDragging || !this.lastDragEvent) return;
+
+            // Calculate the new position
+            const progressBar = this.$refs.progressBar;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = this.lastDragEvent.clientX - rect.left;
+            const barWidth = rect.width;
+            
+            // Ensure the drag position is within bounds
+            const boundedX = Math.max(0, Math.min(clickX, barWidth));
+            const percentage = boundedX / barWidth;
+            
+            // Update the visual position without seeking
+            this.dragTime = percentage * this.duration;
+            this.currentTime = this.dragTime;
+
+            // Request next frame
+            this.dragAnimationFrame = requestAnimationFrame(() => this.updateDragAnimation());
+        },
+
+        endDrag() {
+            if (!this.isDragging) return;
+            
+            // Cancel animation frame
+            if (this.dragAnimationFrame) {
+                cancelAnimationFrame(this.dragAnimationFrame);
+                this.dragAnimationFrame = null;
+            }
+            
+            // Remove event listeners
+            window.removeEventListener('mousemove', this.handleDragMove.bind(this));
+            window.removeEventListener('mouseup', this.endDrag.bind(this));
+            
+            // Restore cursor and text selection
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            
+            // Perform the actual seek
+            if (this.howl && this.lastDragEvent) {
+                const progressBar = this.$refs.progressBar;
+                const rect = progressBar.getBoundingClientRect();
+                const clickX = this.lastDragEvent.clientX - rect.left;
+                const barWidth = rect.width;
+                const boundedX = Math.max(0, Math.min(clickX, barWidth));
+                const percentage = boundedX / barWidth;
+                const seekTime = percentage * this.duration;
+                
+                this.howl.seek(seekTime);
+                this.currentTime = seekTime;
+            }
+            
+            this.isDragging = false;
+            this.lastDragEvent = null;
+        },
+
+        updateVolume() {
+            if (!this.howl) return;
+            this.howl.volume(this.volume / 100);
+            localStorage.setItem('playerVolume', this.volume);
+            
+            // Unmute if volume is changed manually
+            if (this.isMuted && this.volume > 0) {
+                this.isMuted = false;
+                this.howl.mute(false);
             }
         },
 
         toggleMute() {
-            if (this.wavesurfer) {
-                this.isMuted = !this.isMuted;
-                this.wavesurfer.setMuted(this.isMuted);
+            if (!this.howl) return;
+            this.isMuted = !this.isMuted;
+            this.howl.mute(this.isMuted);
+        },
+
+        toggleShuffle() {
+            this.isShuffled = !this.isShuffled;
+            if (this.isShuffled && this.playlist.length > 1) {
+                const currentTrack = this.playlist[this.currentIndex];
+                this.playlist = this.shuffleArray([...this.playlist]);
+                this.currentIndex = this.playlist.findIndex(track => track.id === currentTrack.id);
             }
         },
 
-        updateVolume() {
-            if (this.wavesurfer) {
-                this.wavesurfer.setVolume(this.volume / 100);
-                localStorage.setItem('playerVolume', this.volume);
-            }
-        },
-
-        syncPlayState() {
-            if (!this.currentTrack) return;
-            
-            // Update all play buttons on the page
-            document.querySelectorAll(`[data-beat-id="${this.currentTrack.id}"]`).forEach(el => {
-                if (el.__x) {
-                    el.__x.$data.isPlaying = this.isPlaying;
-                }
-            });
-
-            // Dispatch event to notify all components
-            this.$dispatch('playstate-changed', {
-                trackId: this.currentTrack.id,
-                isPlaying: this.isPlaying
-            });
-        },
-
-        formatTime(seconds) {
-            if (!seconds) return '0:00';
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = Math.floor(seconds % 60);
-            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-        },
-
-        previousTrack() {
-            if (this.currentTime > 3) {
-                // If more than 3 seconds into the song, restart it
-                if (this.wavesurfer) {
-                    this.wavesurfer.seekTo(0);
-                }
-            } else if (this.currentQueueIndex > 0) {
-                // Go to previous track in queue
-                this.currentQueueIndex--;
-                this.loadTrack(this.queue[this.currentQueueIndex]);
-            }
-        },
-
-        nextTrack() {
-            // Try to find the next beat in the featured section
-            const featuredBeats = document.querySelectorAll('.beat-card[data-beat-id]');
-            let nextBeat = null;
-            let currentIndex = -1;
-            
-            // Convert NodeList to Array for easier manipulation
-            const beatsArray = Array.from(featuredBeats);
-            
-            if (beatsArray.length > 0) {
-                // Find current beat index
-                currentIndex = beatsArray.findIndex(beat => 
-                    parseInt(beat.dataset.beatId) === this.currentTrack?.id
-                );
-                
-                // Get next beat
-                if (currentIndex !== -1 && currentIndex < beatsArray.length - 1) {
-                    nextBeat = beatsArray[currentIndex + 1];
-                } else {
-                    // Loop back to first beat if at end or current track not found
-                    nextBeat = beatsArray[0];
-                }
-                
-                // Play next beat if found
-                if (nextBeat) {
-                    const trackData = nextBeat.querySelector('[x-data]').__x.$data.track;
-                    if (trackData) {
-                        this.handlePlayTrack({
-                            id: parseInt(nextBeat.dataset.beatId),
-                            title: trackData.title,
-                            producer: trackData.producer,
-                            audioUrl: trackData.audioUrl,
-                            coverImage: trackData.coverImage
-                        });
-                        return;
-                    }
-                }
-            }
-            
-            // Fallback to queue if no featured beats found or if getting track data failed
-            if (this.currentQueueIndex < this.queue.length - 1) {
-                this.currentQueueIndex++;
-                this.loadTrack(this.queue[this.currentQueueIndex]);
-            } else if (this.queue.length > 0) {
-                // Loop back to the first track in queue
-                this.currentQueueIndex = 0;
-                this.loadTrack(this.queue[0]);
-            }
-        },
-
-        handlePlayTrack(track) {
-            // Use existing instance if available
-            if (window.audioPlayer && window.audioPlayer !== this) {
-                window.audioPlayer.handlePlayTrack(track);
-                return;
-            }
-            
-            // Initialize if needed
-            if (!this.wavesurfer) {
-                this.init();
-            }
-            
-            // Add to queue if not present
-            const existingTrack = this.queue.find(t => t.id === track.id);
-            if (!existingTrack) {
-                this.queue.push(track);
-            } else {
-                // Update existing track data in case it changed
-                Object.assign(existingTrack, track);
-            }
-            
-            this.currentQueueIndex = this.queue.findIndex(t => t.id === track.id);
-            
-            if (!this.currentTrack || this.currentTrack.id !== track.id) {
-                this.loadTrack(track);
-                this.isPlaying = true;
-            } else {
-                this.togglePlay();
-            }
-            
-            this.syncPlayState();
-        },
-
-        toggleLoopMode() {
-            const modes = ['none', 'infinite', 'once'];
+        toggleLoop() {
+            const modes = ['off', 'one', 'all'];
             const currentIndex = modes.indexOf(this.loopMode);
             this.loopMode = modes[(currentIndex + 1) % modes.length];
         },
 
-        updatePlayState() {
-            this.$dispatch('playstate-changed', {
-                trackId: this.currentTrack?.id,
-                isPlaying: this.isPlaying
-            });
+        nextTrack() {
+            if (this.playlist.length <= 1) return;
+            
+            const nextIndex = (this.currentIndex + 1) % this.playlist.length;
+            this.currentIndex = nextIndex;
+            this.loadTrack(this.playlist[nextIndex]);
+        },
+
+        previousTrack() {
+            if (this.playlist.length <= 1) return;
+            
+            const prevIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
+            this.currentIndex = prevIndex;
+            this.loadTrack(this.playlist[prevIndex]);
+        },
+
+        shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        },
+
+        handleError(message) {
+            this.error = message;
+            this.isLoading = false;
+            
+            if (this.retryAttempts < this.maxRetries) {
+                this.retryAttempts++;
+                setTimeout(() => {
+                    this.loadTrack(this.currentTrack);
+                }, 1000 * this.retryAttempts);
+            }
+        },
+
+        formatTime(time) {
+            if (!time) return '0:00';
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        },
+
+        cleanup() {
+            this.stopTimeUpdate();
+            
+            // Clean up Howler instance
+            if (this.howl) {
+                try {
+                    // Disconnect our analyser if it exists
+                    this.disconnectAudioNodes();
+                    
+                    this.howl.off();  // Remove all event listeners
+                    this.howl.unload();
+                    this.howl = null;
+                } catch (error) {
+                    console.warn('Error cleaning up audio nodes:', error);
+                }
+            }
+
+            // Clean up animation
+            if (this.animationFrame) {
+                cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
+            }
+
+            // Reset state
+            this.currentTrack = null;
+            this.isPlaying = false;
+            this.retryAttempts = 0;
+            this.dispatchPlayState();
+
+            if (this.dragAnimationFrame) {
+                cancelAnimationFrame(this.dragAnimationFrame);
+                this.dragAnimationFrame = null;
+            }
+
+            if (this.volumeDragAnimationFrame) {
+                cancelAnimationFrame(this.volumeDragAnimationFrame);
+                this.volumeDragAnimationFrame = null;
+            }
+        },
+
+        dispatchPlayState() {
+            window.dispatchEvent(new CustomEvent('playstate-changed', {
+                detail: {
+                    trackId: this.currentTrack?.id,
+                    isPlaying: this.isPlaying
+                }
+            }));
+        },
+
+        startVolumeDrag(event) {
+            if (event.button !== 0) return;
+            this.isVolumeDragging = true;
+            
+            const handleMove = (e) => {
+                if (!this.isVolumeDragging) return;
+                requestAnimationFrame(() => this.updateVolumeFromEvent(e));
+            };
+            
+            const handleUp = () => {
+                this.isVolumeDragging = false;
+                window.removeEventListener('mousemove', handleMove);
+                window.removeEventListener('mouseup', handleUp);
+            };
+            
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('mouseup', handleUp);
+            
+            this.updateVolumeFromEvent(event);
+        },
+
+        updateVolumeFromEvent(event) {
+            const root = this.$refs.volumeRoot;
+            const rect = root.getBoundingClientRect();
+            const x = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+            const percentage = Math.round((x / rect.width) * 100);
+            this.volume = Math.max(0, Math.min(percentage, 100));
+            this.updateVolume();
+        },
+
+        updateVolume() {
+            if (!this.howl) return;
+            this.howl.volume(this.volume / 100);
+            localStorage.setItem('playerVolume', this.volume);
+            
+            // Unmute if volume is changed manually
+            if (this.isMuted && this.volume > 0) {
+                this.isMuted = false;
+                this.howl.mute(false);
+            }
         }
     }));
 });

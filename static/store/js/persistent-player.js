@@ -9,7 +9,6 @@ document.addEventListener('alpine:init', () => {
         isInCart: false,
         isShuffled: false,
         loopMode: 'off', // 'off', 'all', 'one'
-        wavesurfer: null,
         howl: null,
         queue: [],
         originalQueue: [],
@@ -17,181 +16,294 @@ document.addEventListener('alpine:init', () => {
         isLoading: false,
         error: null,
         isMinimized: false,
+        currentTime: 0,
+        duration: 0,
+        
+        // Audio visualization properties
+        analyser: null,
+        audioSource: null,
+        dataArray: null,
+        animationFrame: null,
+        canvas: null,
+        canvasCtx: null,
+        barWidth: 2,
+        barGap: 1,
+        barCount: 70,
+        reconnectAttempts: 0,
 
         init() {
-            // Initialize WaveSurfer with improved configuration
-            this.wavesurfer = WaveSurfer.create({
-                container: '#waveform',
-                height: 48,
-                waveColor: 'rgba(255, 255, 255, 0.2)',
-                progressColor: 'rgba(255, 255, 255, 0.8)',
-                cursorColor: 'rgba(255, 255, 255, 0.5)',
-                barWidth: 2,
-                barGap: 1,
-                barRadius: 3,
-                responsive: true,
-                interact: true,
-                hideScrollbar: true,
-                normalize: true,
-                partialRender: true,
-                pixelRatio: 1,
-            });
-
-            // WaveSurfer event listeners
-            this.wavesurfer.on('ready', () => {
-                this.isLoading = false;
-                if (this.howl && this.isPlaying) {
-                    this.howl.play();
-                }
-            });
-
-            this.wavesurfer.on('error', (err) => {
-                console.error('WaveSurfer error:', err);
-                this.error = 'Error loading audio visualization';
-            });
-
             // Load volume from localStorage
             const savedVolume = localStorage.getItem('playerVolume');
             if (savedVolume !== null) {
                 this.volume = parseInt(savedVolume);
             }
 
-            // Handle keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                
-                if (e.code === 'Space' && this.currentTrack) {
-                    e.preventDefault();
-                    this.togglePlay();
-                } else if (e.code === 'ArrowLeft' && e.altKey && this.currentTrack) {
-                    this.previousTrack();
-                } else if (e.code === 'ArrowRight' && e.altKey && this.currentTrack) {
-                    this.nextTrack();
-                } else if (e.code === 'KeyM' && this.currentTrack) {
-                    this.toggleMute();
-                } else if (e.code === 'KeyR') {
-                    this.toggleLoop();
-                } else if (e.code === 'KeyS') {
-                    this.toggleShuffle();
-                } else if (e.code === 'KeyF') {
-                    this.toggleFavorite();
+            // Initialize canvas for visualization
+            this.$nextTick(() => {
+                this.canvas = this.$refs.visualizer;
+                if (this.canvas) {
+                    this.canvasCtx = this.canvas.getContext('2d');
+                    this.resizeCanvas();
+                    window.addEventListener('resize', () => this.resizeCanvas());
                 }
             });
 
-            // Listen for track play events
-            window.addEventListener('play-track', (event) => {
-                const track = event.detail;
-                if (this.currentTrack?.id !== track.id) {
-                    this.loadTrack(track);
-                } else {
-                    this.togglePlay();
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => this.cleanup());
+        },
+
+        resizeCanvas() {
+            if (!this.canvas) return;
+            
+            const container = this.canvas.parentElement;
+            this.canvas.width = container.offsetWidth;
+            this.canvas.height = container.offsetHeight;
+            
+            // Recalculate bar dimensions
+            this.barWidth = Math.max(2, Math.floor(this.canvas.width / (this.barCount * 1.5)));
+            this.barGap = Math.max(1, Math.floor(this.barWidth * 0.3));
+        },
+
+        initializeVisualization() {
+            // Use Howler's AudioContext
+            const ctx = Howler.ctx;
+            
+            if (!ctx) {
+                console.warn('Howler AudioContext not available');
+                return;
+            }
+
+            // Create analyzer if it doesn't exist
+            if (!this.analyser) {
+                this.analyser = ctx.createAnalyser();
+                this.analyser.fftSize = 256;
+                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            }
+
+            // Resume context if suspended
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+        },
+
+        disconnectAudioNodes() {
+            try {
+                if (this.analyser) {
+                    this.analyser.disconnect();
                 }
-            });
+            } catch (error) {
+                console.warn('Error disconnecting audio nodes:', error);
+            }
+        },
+
+        connectAudioNodes() {
+            if (!this.howl?._sounds[0]) {
+                console.warn('No Howl sound available to connect');
+                return false;
+            }
+
+            try {
+                const ctx = Howler.ctx;
+                if (!ctx) {
+                    console.warn('Howler AudioContext not available');
+                    return false;
+                }
+
+                // Get Howler's internal nodes
+                const sound = this.howl._sounds[0];
+                
+                // Wait until Howler has created its internal nodes
+                if (!sound._node) {
+                    if (this.reconnectAttempts < 3) {
+                        this.reconnectAttempts++;
+                        setTimeout(() => this.connectAudioNodes(), 50 * Math.pow(2, this.reconnectAttempts));
+                        return false;
+                    }
+                    console.warn('Howler nodes not ready after retries');
+                    return false;
+                }
+
+                // Disconnect existing nodes
+                this.disconnectAudioNodes();
+
+                // Get or create the analyser node
+                if (!this.analyser) {
+                    this.analyser = ctx.createAnalyser();
+                    this.analyser.fftSize = 256;
+                    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                }
+
+                // Connect our analyser to Howler's node chain
+                const gainNode = sound._node;
+                gainNode.disconnect();
+                gainNode.connect(this.analyser);
+                this.analyser.connect(ctx.destination);
+
+                return true;
+            } catch (error) {
+                console.warn('Audio visualization connection error:', error);
+                if (this.reconnectAttempts < 3) {
+                    this.reconnectAttempts++;
+                    setTimeout(() => this.connectAudioNodes(), 50 * Math.pow(2, this.reconnectAttempts));
+                    return false;
+                }
+                console.error('Failed to connect audio nodes after 3 attempts');
+                return false;
+            }
+        },
+
+        draw() {
+            if (!this.analyser || !this.canvas || !this.isPlaying) {
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = null;
+                }
+                return;
+            }
+
+            this.animationFrame = requestAnimationFrame(() => this.draw());
+
+            const width = this.canvas.width;
+            const height = this.canvas.height;
+            const centerY = height / 2;
+
+            this.analyser.getByteFrequencyData(this.dataArray);
+            this.canvasCtx.clearRect(0, 0, width, height);
+
+            // Calculate total width of all bars and gaps
+            const totalBars = this.barCount;
+            const totalWidth = (this.barWidth + this.barGap) * totalBars - this.barGap;
+            let startX = (width - totalWidth) / 2;
+
+            for (let i = 0; i < totalBars; i++) {
+                // Get frequency value
+                const dataIndex = Math.floor(i * this.analyser.frequencyBinCount / totalBars);
+                const value = this.dataArray[dataIndex];
+                
+                // Calculate bar height based on frequency value
+                const barHeight = (value / 255) * (height / 2);
+                
+                // Draw mirrored bars
+                this.canvasCtx.fillStyle = `rgba(99, 102, 241, ${0.3 + (value / 255) * 0.7})`;
+                
+                // Top bar
+                this.canvasCtx.fillRect(
+                    startX,
+                    centerY - barHeight,
+                    this.barWidth,
+                    barHeight
+                );
+                
+                // Bottom bar (mirrored)
+                this.canvasCtx.fillRect(
+                    startX,
+                    centerY,
+                    this.barWidth,
+                    barHeight
+                );
+                
+                startX += this.barWidth + this.barGap;
+            }
         },
 
         loadTrack(track) {
+            if (!track?.audioUrl) {
+                console.error('Invalid track data');
+                return;
+            }
+
             this.isLoading = true;
             this.error = null;
-            this.currentTrack = track;
-            this.isMinimized = false;
+            this.reconnectAttempts = 0;
 
-            // Check if track is favorited
-            fetch(`/api/favorites/check/${track.id}/`)
-                .then(response => response.json())
-                .then(data => {
-                    this.isFavorite = data.is_favorite;
-                })
-                .catch(error => {
-                    console.error('Error checking favorite status:', error);
-                });
-
-            // Check if track is in cart
-            fetch(`/api/cart/check/${track.id}/`)
-                .then(response => response.json())
-                .then(data => {
-                    this.isInCart = data.in_cart;
-                })
-                .catch(error => {
-                    console.error('Error checking cart status:', error);
-                });
-
-            // Stop current audio if playing
-            if (this.howl) {
-                this.howl.unload();
-            }
-
-            // Create new Howl instance
-            this.howl = new Howl({
-                src: [track.audioUrl],
-                html5: true,
-                volume: this.volume / 100,
-                onplay: () => {
-                    this.isPlaying = true;
-                    requestAnimationFrame(this.step.bind(this));
-                },
-                onpause: () => {
-                    this.isPlaying = false;
-                },
-                onstop: () => {
-                    this.isPlaying = false;
-                },
-                onend: () => {
-                    this.isPlaying = false;
-                    if (this.loopMode === 'one') {
-                        this.howl.play();
-                    } else if (this.loopMode === 'all' && !this.hasNextTrack) {
-                        this.currentIndex = -1;
-                        this.nextTrack();
-                    } else {
-                        this.nextTrack();
-                    }
-                },
-                onloaderror: (id, err) => {
-                    console.error('Howler load error:', err);
-                    this.error = 'Error loading audio file';
-                    this.isLoading = false;
-                },
-                onplayerror: (id, err) => {
-                    console.error('Howler play error:', err);
-                    this.error = 'Error playing audio file';
-                    this.isLoading = false;
-                }
-            });
-
-            // Load waveform
             try {
-                this.wavesurfer.load(track.audioUrl);
-            } catch (err) {
-                console.error('WaveSurfer load error:', err);
-                this.error = 'Error loading audio visualization';
-                this.isLoading = false;
-            }
+                // Clean up previous track completely
+                this.cleanup();
 
-            // Update queue if track is not in current queue
-            if (!this.queue.find(t => t.id === track.id)) {
-                this.queue.push(track);
-                this.originalQueue = [...this.queue];
-                this.currentIndex = this.queue.length - 1;
-            } else {
-                this.currentIndex = this.queue.findIndex(t => t.id === track.id);
-            }
+                // Initialize visualization using Howler's context
+                this.initializeVisualization();
 
-            // Start playing
-            this.play();
+                // Create new Howl instance
+                this.howl = new Howl({
+                    src: [track.audioUrl],
+                    html5: true,
+                    volume: this.volume / 100,
+                    format: ['mp3', 'wav'],
+                    onload: () => {
+                        this.duration = this.howl.duration();
+                        this.isLoading = false;
+                        this.currentTrack = track;
+
+                        // Wait for the first 'play' event to set up visualization
+                        this.howl.once('play', () => {
+                            // Wait for Howler to fully set up its nodes
+                            requestAnimationFrame(() => {
+                                // Start visualization only after a successful connection
+                                if (this.connectAudioNodes()) {
+                                    this.draw();
+                                }
+                            });
+                            this.startTimeUpdate();
+                        });
+
+                        this.howl.play();
+                        this.isPlaying = true;
+                        this.dispatchPlayState();
+                    },
+                    onplay: () => {
+                        this.isPlaying = true;
+                        this.startTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onpause: () => {
+                        this.isPlaying = false;
+                        this.stopTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onstop: () => {
+                        this.isPlaying = false;
+                        this.currentTime = 0;
+                        this.stopTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onend: () => {
+                        this.handleTrackEnd();
+                        this.stopTimeUpdate();
+                        this.dispatchPlayState();
+                    },
+                    onseek: () => {
+                        this.currentTime = this.howl.seek();
+                    },
+                    onloaderror: (id, error) => {
+                        console.error('Error loading audio:', error);
+                        this.handleError('Error loading audio file');
+                    },
+                    onplayerror: (id, error) => {
+                        console.error('Error playing audio:', error);
+                        this.handleError('Error playing audio file');
+                        // Try to recover from playback errors
+                        this.cleanup();
+                        setTimeout(() => this.loadTrack(track), 1000);
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing audio player:', error);
+                this.handleError('Error initializing audio player');
+            }
         },
 
-        step() {
-            if (this.howl && this.isPlaying) {
-                const seek = this.howl.seek();
-                this.wavesurfer.setCurrentTime(seek);
-                requestAnimationFrame(this.step.bind(this));
-            }
+        startTimeUpdate() {
+            this.timeUpdateInterval = setInterval(() => {
+                if (this.howl && this.isPlaying) {
+                    this.currentTime = this.howl.seek();
+                }
+            }, 1000);
         },
 
-        play() {
-            if (!this.howl) return;
-            this.howl.play();
-            this.isPlaying = true;
+        stopTimeUpdate() {
+            if (this.timeUpdateInterval) {
+                clearInterval(this.timeUpdateInterval);
+            }
         },
 
         togglePlay() {
@@ -202,20 +314,6 @@ document.addEventListener('alpine:init', () => {
             } else {
                 this.howl?.play();
             }
-            this.isPlaying = !this.isPlaying;
-        },
-
-        seek(event) {
-            if (!this.howl || !this.wavesurfer) return;
-            
-            const rect = event.currentTarget.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const percent = x / rect.width;
-            const duration = this.howl.duration();
-            const seekTime = duration * percent;
-            
-            this.howl.seek(seekTime);
-            this.wavesurfer.setCurrentTime(seekTime);
         },
 
         updateVolume() {
@@ -238,138 +336,50 @@ document.addEventListener('alpine:init', () => {
             this.updateVolume();
         },
 
+        seek(position) {
+            if (this.howl) {
+                this.howl.seek(position * this.duration);
+            }
+        },
+
+        nextTrack() {
+            if (this.queue.length === 0) return;
+            
+            this.currentIndex = (this.currentIndex + 1) % this.queue.length;
+            const nextTrack = this.queue[this.currentIndex];
+            this.loadTrack(nextTrack);
+        },
+
+        previousTrack() {
+            if (this.queue.length === 0) return;
+            
+            this.currentIndex = this.currentIndex <= 0 ? this.queue.length - 1 : this.currentIndex - 1;
+            const prevTrack = this.queue[this.currentIndex];
+            this.loadTrack(prevTrack);
+        },
+
         toggleShuffle() {
             this.isShuffled = !this.isShuffled;
             if (this.isShuffled) {
-                // Save original queue
                 this.originalQueue = [...this.queue];
-                // Shuffle queue except current track
-                const currentTrack = this.queue[this.currentIndex];
-                const remainingTracks = this.queue.filter((_, i) => i !== this.currentIndex);
-                for (let i = remainingTracks.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
-                }
-                this.queue = [currentTrack, ...remainingTracks];
-                this.currentIndex = 0;
+                this.queue = this.shuffleArray([...this.queue]);
             } else {
-                // Restore original queue
-                const currentTrack = this.currentTrack;
                 this.queue = [...this.originalQueue];
-                this.currentIndex = this.queue.findIndex(t => t.id === currentTrack.id);
             }
         },
 
         toggleLoop() {
-            switch (this.loopMode) {
-                case 'off': this.loopMode = 'all'; break;
-                case 'all': this.loopMode = 'one'; break;
-                case 'one': this.loopMode = 'off'; break;
+            const modes = ['off', 'all', 'one'];
+            const currentIndex = modes.indexOf(this.loopMode);
+            this.loopMode = modes[(currentIndex + 1) % modes.length];
+        },
+
+        shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
-        },
-
-        toggleFavorite() {
-            if (!this.currentTrack) return;
-
-            const method = this.isFavorite ? 'DELETE' : 'POST';
-            fetch(`/api/favorites/${this.currentTrack.id}/`, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                this.isFavorite = !this.isFavorite;
-                // Show success message
-                this.showMessage(data.message);
-            })
-            .catch(error => {
-                console.error('Error toggling favorite:', error);
-                this.error = 'Error updating favorite status';
-            });
-        },
-
-        addToCart() {
-            if (!this.currentTrack || this.isInCart) return;
-
-            fetch('/api/cart/add/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({
-                    beat_id: this.currentTrack.id
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                this.isInCart = true;
-                // Show success message
-                this.showMessage(data.message);
-            })
-            .catch(error => {
-                console.error('Error adding to cart:', error);
-                this.error = 'Error adding to cart';
-            });
-        },
-
-        showMessage(message) {
-            this.error = null;
-            // You could implement a toast notification system here
-            console.log(message);
-        },
-
-        minimizePlayer() {
-            this.isMinimized = !this.isMinimized;
-        },
-
-        nextTrack() {
-            if (!this.hasNextTrack) {
-                if (this.loopMode === 'all') {
-                    this.currentIndex = -1;
-                    this.nextTrack();
-                }
-                return;
-            }
-            this.currentIndex++;
-            this.loadTrack(this.queue[this.currentIndex]);
-        },
-
-        previousTrack() {
-            if (!this.hasPreviousTrack) return;
-            this.currentIndex--;
-            this.loadTrack(this.queue[this.currentIndex]);
-        },
-
-        get currentTime() {
-            return this.formatTime(this.howl?.seek() || 0);
-        },
-
-        get duration() {
-            return this.formatTime(this.howl?.duration() || 0);
-        },
-
-        get progress() {
-            if (!this.howl) return 0;
-            return (this.howl.seek() / this.howl.duration()) * 100;
-        },
-
-        get volumeIcon() {
-            if (this.isMuted || this.volume === 0) return 'fa-volume-mute';
-            if (this.volume < 33) return 'fa-volume-off';
-            if (this.volume < 67) return 'fa-volume-down';
-            return 'fa-volume-up';
-        },
-
-        get hasNextTrack() {
-            return this.currentIndex < this.queue.length - 1 || this.loopMode === 'all';
-        },
-
-        get hasPreviousTrack() {
-            return this.currentIndex > 0;
+            return array;
         },
 
         formatTime(seconds) {
@@ -377,6 +387,76 @@ document.addEventListener('alpine:init', () => {
             const minutes = Math.floor(seconds / 60);
             const remainingSeconds = Math.floor(seconds % 60);
             return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        },
+
+        cleanup() {
+            this.stopTimeUpdate();
+            
+            // Clean up Howler instance
+            if (this.howl) {
+                try {
+                    // Disconnect our analyser if it exists
+                    if (this.analyser) {
+                        this.analyser.disconnect();
+                    }
+                    
+                    // Restore Howler's original connections
+                    const sound = this.howl._sounds[0];
+                    if (sound && sound._node) {
+                        sound._node.disconnect();
+                        sound._node.connect(Howler.ctx.destination);
+                    }
+                } catch (error) {
+                    console.warn('Error cleaning up audio nodes:', error);
+                }
+
+                this.howl.off();  // Remove all event listeners
+                this.howl.unload();
+                this.howl = null;
+            }
+
+            // Clean up animation
+            if (this.animationFrame) {
+                cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
+            }
+
+            // Reset state
+            this.currentTrack = null;
+            this.isPlaying = false;
+            this.reconnectAttempts = 0;
+            this.dispatchPlayState();
+        },
+
+        updatePlayState() {
+            if (!this.currentTrack) return;
+            
+            window.dispatchEvent(new CustomEvent('playstate-changed', {
+                detail: {
+                    trackId: this.currentTrack.id,
+                    isPlaying: this.isPlaying
+                }
+            }));
+        },
+
+        handleTrackEnd() {
+            if (this.loopMode === 'one') {
+                this.howl.play();
+            } else if (this.loopMode === 'all' && !this.hasNextTrack) {
+                this.currentIndex = -1;
+                this.nextTrack();
+            } else {
+                this.nextTrack();
+            }
+        },
+
+        handleError(errorMessage) {
+            this.error = errorMessage;
+            this.isLoading = false;
+        },
+
+        setupVisualization() {
+            this.draw();
         }
     }));
 }); 
